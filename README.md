@@ -1,2 +1,2 @@
 # FourMuskteersOfTseng
-Ai-in-the-loop n Software Project Cycle.in 2026
+Final Project of "Ai-in-the-loop in Software Project Cycle". A course opened in NYCU in 2026.
