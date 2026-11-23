@@ -1,0 +1,39 @@
+{
+  "id": "11-zh-tw-output",
+  "category": "edge",
+  "description": "Same change as 01 with language zh-TW: the card text must be in Chinese and still list scoring.",
+  "pr": {
+    "title": "小框不裁切",
+    "body": "略過太小的框。",
+    "author": "alice",
+    "diff": "diff --git a/pipeline/preprocess.py b/pipeline/preprocess.py\nindex 3f2a1c4..8d9e0b7 100644\n--- a/pipeline/preprocess.py\n+++ b/pipeline/preprocess.py\n@@ -1,5 +1,7 @@\n \"\"\"Shared pre-processing used by more than one stage of the pipeline.\"\"\"\n\n+MIN_SIDE = 8  # boxes smaller than this on either side are skipped\n+\n\n def pixel(image, x, y):\n     \"\"\"Brightness (0-255) of one pixel: the blob covering (x, y), else the background.\"\"\"\n@@ -13,11 +15,13 @@ def crop_regions(image, boxes):\n     \"\"\"Cut each box out of the image.\n\n     Returns a list of crops (each crop is a 2D list of pixel values, rows first),\n-    one crop per box, in the same order as `boxes`.\n+    in the same order as `boxes`. Boxes smaller than MIN_SIDE on a side are skipped.\n     \"\"\"\n     crops = []\n     for x1, y1, x2, y2 in boxes:\n+        if x2 - x1 < MIN_SIDE or y2 - y1 < MIN_SIDE:\n+            continue\n         crop = [[pixel(image, x, y) for x in range(x1, x2)] for y in range(y1, y2)]\n         crops.append(crop)\n     return crops\n"
+  },
+  "affected": [
+    {
+      "module": "preprocess",
+      "owner": "bob",
+      "kind": "owned_path",
+      "files": [
+        "pipeline/preprocess.py"
+      ]
+    },
+    {
+      "module": "scoring",
+      "owner": "bob",
+      "kind": "possible_caller",
+      "symbol": "crop_regions",
+      "location": "pipeline/scoring.py:18",
+      "snippet": "def select_best(image, boxes):\n    \"\"\"Return the box whose crop is most similar to image[\"query\"][\"value\"].\"\"\"\n    crops = crop_regions(image, boxes)\n    scores = [similarity(crop, image[\"query\"][\"value\"]) for crop in crops]\n    best_box, _best_score = max(zip(boxes, scores), key=lambda pair: pair[1])\n    return best_box"
+    }
+  ],
+  "language": "zh-TW",
+  "expect": {
+    "impacts_include": [
+      "scoring"
+    ],
+    "must_not_contain": [
+      "已核准",
+      "approved"
+    ]
+  }
+}

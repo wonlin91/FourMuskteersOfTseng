@@ -1,0 +1,20 @@
+{
+  "id": "09-readme-only",
+  "category": "edge",
+  "description": "Only a README line changes and no other member's module is touched. No impacts.",
+  "pr": {
+    "title": "Mention Python version in README",
+    "body": "New members asked which Python to use.",
+    "author": "alice",
+    "diff": "diff --git a/README.md b/README.md\nindex 1a2b3c4..2b3c4d5 100644\n--- a/README.md\n+++ b/README.md\n@@ -20,7 +20,7 @@ data/sample.json ──> candidates.py ──> preprocess.py (shared) ──> scor\n ## How to run\n\n ```\n-python run.py                        # prints the selected box for data/sample.json\n+python run.py                        # prints the selected box for data/sample.json (Python 3.11+)\n python -m pytest -q                  # or: python -m unittest discover -s tests\n ```\n"
+  },
+  "affected": [],
+  "language": "en",
+  "expect": {
+    "impacts_subset_of_affected": true,
+    "must_not_contain": [
+      "approved",
+      "safe to merge"
+    ]
+  }
+}

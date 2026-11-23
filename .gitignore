@@ -3,3 +3,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
+evals/results/*-fake.md

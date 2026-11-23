@@ -37,4 +37,5 @@ modules:
     paths:
       - "practice/"
       - "tests/"
+      - "evals/"
     interfaces: []

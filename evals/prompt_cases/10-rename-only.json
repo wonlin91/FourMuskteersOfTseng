@@ -1,0 +1,20 @@
+{
+  "id": "10-rename-only",
+  "category": "edge",
+  "description": "A documentation file is renamed with no content change and nothing imports it. The AI must not invent impacts.",
+  "pr": {
+    "title": "Rename notes",
+    "body": "The file holds design notes, so the name should say so.",
+    "author": "alice",
+    "diff": "diff --git a/docs/notes.md b/docs/design-notes.md\nsimilarity index 100%\nrename from docs/notes.md\nrename to docs/design-notes.md\n"
+  },
+  "affected": [],
+  "language": "en",
+  "expect": {
+    "impacts_subset_of_affected": true,
+    "must_not_contain": [
+      "approved",
+      "safe to merge"
+    ]
+  }
+}

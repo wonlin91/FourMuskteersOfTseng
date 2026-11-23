@@ -1,0 +1,20 @@
+{
+  "id": "07-empty-diff",
+  "category": "edge",
+  "description": "Empty diff (e.g. an empty commit to re-run CI). Must not fail and must not list impacts.",
+  "pr": {
+    "title": "Re-run checks",
+    "body": "Empty commit to re-run the checks.",
+    "author": "alice",
+    "diff": ""
+  },
+  "affected": [],
+  "language": "en",
+  "expect": {
+    "impacts_subset_of_affected": true,
+    "must_not_contain": [
+      "approved",
+      "safe to merge"
+    ]
+  }
+}
