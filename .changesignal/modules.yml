@@ -1,5 +1,11 @@
 # Module map: who owns which files.
-# A path ending in "/" matches everything under that folder; otherwise it must match the file exactly.
+# Each path is one of:
+#   "dir/"            everything under that folder
+#   "dir/file.py"     exactly that file
+#   a glob pattern:   "*"  any characters except "/"        "dir/*.py"  .py files directly in dir/
+#                     "?"  one character except "/"         "dir/?.py"  a.py but not ab.py
+#                     "**" any number of folders (or none)  "**/README.md"  README.md at any depth
+#                                                           "dir/**/*.py"  .py files at any depth under dir/
 # owner = GitHub username. The owner must be a collaborator, or the reviewer request will fail.
 modules:
   - name: pipeline
