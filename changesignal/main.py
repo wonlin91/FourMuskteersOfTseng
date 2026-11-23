@@ -15,6 +15,10 @@ from .github_api import MAX_PR_FILES, GitHubAPI
 from .modules import ModuleMapError, find_affected, parse_modules
 
 MODULES_PATH = ".changesignal/modules.yml"
+PR_EVENTS = ("pull_request", "pull_request_target")
+# Where the PR head is checked out for caller detection. The workflow runs ChangeSignal's own
+# code from the base branch and checks the PR out separately, only to parse it (never run it).
+REPO_ROOT = os.environ.get("CHANGESIGNAL_REPO_ROOT", ".")
 
 
 def approved_owners(reviews, head_sha):
@@ -35,7 +39,9 @@ def _login(review):
     return ((review.get("user") or {}).get("login") or "").lower()
 
 
-def reconcile(api, pr, changed_files, event_name, modules, patches=None):
+def reconcile(api, pr, changed_files, event_name, modules, patches=None, write_card=True):
+    """write_card=False (review events): the run has no API key, so it leaves the AI card
+    alone; reviewer requests and the status are still recomputed."""
     number, head = pr["number"], pr["head_sha"]
     if pr.get("changed_files", 0) > MAX_PR_FILES:
         api.set_status(head, "failure",
@@ -45,7 +51,7 @@ def reconcile(api, pr, changed_files, event_name, modules, patches=None):
     affected = find_affected(changed_files, modules, pr["author"])
     author = pr["author"].lower()
     # Callers in the author's own modules need no one else's sign-off; leave them off the card.
-    affected += [c for c in find_callers(changed_files, modules, ".", patches)
+    affected += [c for c in find_callers(changed_files, modules, REPO_ROOT, patches)
                  if c["owner"].lower() != author]
 
     # Owners of touched paths must sign off (rule). Owners of possible callers are asked to
@@ -59,10 +65,10 @@ def reconcile(api, pr, changed_files, event_name, modules, patches=None):
     approved = approved_owners(reviews, head)
     missing = sorted(owners[o] for o in owners if o not in approved)
 
-    # Card: redo it when it is missing or describes an older commit (e.g. this review run
-    # replaced a queued push run), and on any PR event ("edited" refreshes the reason).
+    # Card: redo it when it is missing or describes an older commit, and on any PR event
+    # ("edited" refreshes the reason).
     existing = api.find_card(number)
-    if existing is None or existing["head"] != head or event_name == "pull_request":
+    if write_card and (existing is None or existing["head"] != head or event_name in PR_EVENTS):
         if "diff" not in pr:
             pr["diff"] = api.get_diff(number)
         card = build_card(pr, affected)
@@ -101,7 +107,7 @@ def load_modules_for(api, pr):
     return parse_modules(text)
 
 
-def run(api, number, event_name, checkout_sha=None):
+def run(api, number, event_name, checkout_sha=None, write_card=True):
     """checkout_sha: the commit checked out on disk. Caller detection parses those files
     with line numbers from the PR patch, so they must be the PR head the patch describes."""
     # Fetch fresh state (the event can be stale) and make sure no push or base change
@@ -128,12 +134,13 @@ def run(api, number, event_name, checkout_sha=None):
     except ModuleMapError as e:
         api.set_status(pr["head_sha"], "failure", f"Invalid {MODULES_PATH}: {e}")
         raise
-    return reconcile(api, pr, files, event_name, modules, patches)
+    return reconcile(api, pr, files, event_name, modules, patches, write_card)
 
 
 def _checkout_sha():
     try:
-        out = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
+        out = subprocess.run(["git", "-C", REPO_ROOT, "rev-parse", "HEAD"],
+                             capture_output=True, text=True, check=True)
         return out.stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return None  # not a git checkout (e.g. local runs): skip the check
@@ -156,7 +163,8 @@ def main():
     # Fail closed: replace any earlier verdict on this commit before doing anything fallible.
     api.set_status(head, "pending", "ChangeSignal is checking this commit...")
     try:
-        result = run(api, number, event_name, checkout)
+        result = run(api, number, event_name, checkout,
+                     write_card=os.environ.get("CHANGESIGNAL_WRITE_CARD", "1") != "0")
     except ModuleMapError:
         raise  # status already set to failure with the reason
     except Exception as e:
