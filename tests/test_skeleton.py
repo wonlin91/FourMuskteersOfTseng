@@ -2,8 +2,10 @@
 from pathlib import Path
 
 from changesignal.github_api import GitHubAPI
-from changesignal.main import approved_owners, reconcile
-from changesignal.modules import find_affected, load_modules, parse_modules
+import pytest
+
+from changesignal.main import approved_owners, load_modules_for, reconcile, run
+from changesignal.modules import ModuleMapError, find_affected, load_modules, parse_modules
 
 HEAD = "a" * 40
 OLD = "b" * 40
@@ -16,13 +18,17 @@ modules:
 
 
 class FakeAPI:
-    def __init__(self, reviews=(), card_head=None):
+    def __init__(self, reviews=(), card_head=None, asked=()):
         self.reviews = list(reviews)
         self.card = {"id": 1, "head": card_head} if card_head else None
+        self.asked = list(asked)
         self.cards, self.requested, self.statuses = [], [], []
 
     def list_reviews(self, number):
         return self.reviews
+
+    def requested_logins(self, number):
+        return self.asked
 
     def find_card(self, number):
         return self.card
@@ -42,8 +48,8 @@ class FakeAPI:
 
 
 def pr(author="Alice", body="Because the API changed.", changed_files=1):
-    return {"number": 1, "title": "t", "body": body, "author": author,
-            "head_sha": HEAD, "base_ref": "main", "changed_files": changed_files}
+    return {"number": 1, "title": "t", "body": body, "author": author, "head_sha": HEAD,
+            "base_ref": "main", "base_sha": "c" * 40, "changed_files": changed_files}
 
 
 def review(login, state, sha=HEAD):
@@ -64,6 +70,37 @@ def test_author_own_module_is_not_affected():
 def test_other_module_is_affected_with_owner():
     assert find_affected(["app/card.py", "README.md"], MODULES, "Alice") == [
         {"module": "card", "owner": "Bob", "kind": "owned_path", "files": ["app/card.py"]}]
+
+
+@pytest.mark.parametrize("text", [
+    "",                                              # empty file
+    "module:\n  - {name: a, owner: b, paths: [x]}",   # typo in the key
+    "modules: []",                                   # no modules
+    "modules:\n  - {name: a, paths: [x]}",            # no owner
+    "modules:\n  - {name: a, owner: b, paths: []}",   # no paths
+    "modules: [unclosed",                            # not valid YAML
+])
+def test_broken_module_map_is_rejected_not_treated_as_no_owners(text):
+    with pytest.raises(ModuleMapError):
+        parse_modules(text)
+
+
+def test_module_map_comes_from_base_commit_with_head_fallback_only_if_missing():
+    class Files:
+        def __init__(self, by_ref):
+            self.by_ref, self.asked = by_ref, []
+
+        def get_file(self, path, ref):
+            self.asked.append(ref)
+            return self.by_ref.get(ref)
+
+    good = "modules:\n  - {name: a, owner: b, paths: [x]}"
+    api = Files({"c" * 40: good, HEAD: "modules: []"})
+    assert load_modules_for(api, pr())[0]["owner"] == "b" and api.asked == ["c" * 40]
+    api = Files({HEAD: good})
+    assert load_modules_for(api, pr())[0]["owner"] == "b"
+    with pytest.raises(ModuleMapError):
+        load_modules_for(Files({}), pr())
 
 
 def test_folder_prefix_matches():
@@ -107,6 +144,51 @@ def test_editing_pr_text_refreshes_card_but_does_not_re_request():
     api = FakeAPI([review("bob", "CHANGES_REQUESTED")], card_head=HEAD)
     reconcile(api, pr(), ["app/card.py"], "pull_request", MODULES)
     assert len(api.cards) == 1 and api.requested == []
+
+
+def test_owner_already_asked_is_not_asked_again():
+    api = FakeAPI(asked=["bob"])
+    reconcile(api, pr(), ["app/card.py"], "pull_request", MODULES)
+    assert api.requested == []
+
+
+def test_failed_request_is_retried_even_if_card_is_current():
+    api = FakeAPI(card_head=HEAD)  # card done, but Bob was never successfully asked
+    reconcile(api, pr(), ["app/card.py"], "pull_request_review", MODULES)
+    assert api.requested == [["Bob"]]
+
+
+def test_head_that_keeps_moving_ends_pending_not_green():
+    class Moving(FakeAPI):
+        n = 0
+
+        def get_pr(self, number):
+            Moving.n += 1
+            return dict(pr(), head_sha=f"{Moving.n:040d}")
+
+        def list_pr_files(self, number):
+            return ["app/card.py"]
+
+    api = Moving()
+    assert run(api, 1, "pull_request")["state"] == "pending"
+    assert api.statuses[-1][1] == "pending"
+
+
+def test_invalid_base_map_sets_failure():
+    class BadMap(FakeAPI):
+        def get_pr(self, number):
+            return pr()
+
+        def list_pr_files(self, number):
+            return ["app/card.py"]
+
+        def get_file(self, path, ref):
+            return "module: oops"
+
+    api = BadMap()
+    with pytest.raises(ModuleMapError):
+        run(api, 1, "pull_request")
+    assert api.statuses[-1][1] == "failure"
 
 
 def test_no_affected_owner_is_success():

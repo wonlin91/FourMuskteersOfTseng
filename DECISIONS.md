@@ -59,3 +59,13 @@
 **Why:** Each fixed issue could let a cross-module change show as approved without the owner's sign-off, which is the one thing ChangeSignal must not do.
 
 **Led by:** 李秉倫 (review by Codex; fixes drafted with Claude)
+
+## 2026-11-23 — Second Codex review of PR #4: make the gate fail closed
+
+**What:** Codex re-reviewed the fixes and again requested changes. We fixed: (1) a missing, empty or mistyped `modules.yml` (e.g. `module:` instead of `modules:`) is now rejected with a failing status instead of being read as "no owners" and passing; (2) the status is set to pending before any fallible step, and any error turns it red, so an old green status on the same commit cannot survive a failed run; (3) the module map is read at the PR's exact base commit, and the run also notices if the PR's base changes while files are being listed; (4) reviewer requests no longer depend on the card: every run asks each missing owner who has not been asked and has not reviewed this commit, so a failed request is retried.
+
+**Not fixed:** an old-format card from the first skeleton commit is not recognised (only PR #4 had one; it was deleted by hand).
+
+**Why:** The rule we follow is that ChangeSignal may wrongly block a PR but must never wrongly let one through.
+
+**Led by:** 李秉倫 (review by Codex; fixes drafted with Claude)

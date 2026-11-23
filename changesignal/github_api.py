@@ -63,6 +63,7 @@ class GitHubAPI:
             "author": d["user"]["login"],
             "head_sha": d["head"]["sha"],
             "base_ref": d["base"]["ref"],
+            "base_sha": d["base"]["sha"],
             "changed_files": d.get("changed_files", 0),
         }
 
@@ -75,7 +76,7 @@ class GitHubAPI:
         return resp.text
 
     def get_file(self, path, ref):
-        """Text of `path` on branch `ref`, or None if it does not exist there."""
+        """Text of `path` at `ref` (branch or commit SHA), or None if it does not exist there."""
         resp = self.session.get(self._url(f"/contents/{path}"), params={"ref": ref},
                                 headers={"Accept": "application/vnd.github.raw+json"})
         if resp.status_code == 404:
@@ -93,6 +94,10 @@ class GitHubAPI:
 
     def list_reviews(self, number):
         return self._get_all(f"/pulls/{number}/reviews")
+
+    def requested_logins(self, number):
+        d = self._check(self.session.get(self._url(f"/pulls/{number}/requested_reviewers"))).json()
+        return [u["login"] for u in d.get("users", [])]
 
     def find_card(self, pr_number):
         """Our card comment as {"id", "head"}, or None."""

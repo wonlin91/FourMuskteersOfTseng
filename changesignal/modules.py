@@ -7,9 +7,25 @@ clearer errors for a malformed map.
 import yaml
 
 
+class ModuleMapError(ValueError):
+    """The module map is missing or malformed. ChangeSignal must not pass a PR on a broken map."""
+
+
 def parse_modules(text):
-    data = yaml.safe_load(text) or {}
-    return data.get("modules", [])
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        raise ModuleMapError(f"not valid YAML ({e.__class__.__name__})") from e
+    modules = data.get("modules") if isinstance(data, dict) else None
+    if not isinstance(modules, list) or not modules:
+        raise ModuleMapError("needs a non-empty top-level 'modules' list")
+    for i, m in enumerate(modules, 1):
+        ok = (isinstance(m, dict) and isinstance(m.get("name"), str) and isinstance(m.get("owner"), str)
+              and isinstance(m.get("paths"), list) and m["paths"]
+              and all(isinstance(p, str) and p for p in m["paths"]))
+        if not ok:
+            raise ModuleMapError(f"module #{i} needs 'name', 'owner' and a non-empty 'paths' list")
+    return modules
 
 
 def load_modules(path=".changesignal/modules.yml"):
