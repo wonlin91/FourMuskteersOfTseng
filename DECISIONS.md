@@ -139,3 +139,17 @@
 **Alternative rejected:** requiring callers' owners to sign off (makes a heuristic part of the gate).
 
 **Led by:** 李秉倫 (review by Codex)
+
+## 2026-11-24 — Code steward handoff: wonlin91 → FatFang
+
+**What:** FatFang is the current code steward from this date, taking over from wonlin91 (steward since 2026-11-23, see the rotation entry above). Handoff note from wonlin91: #4, #8, #9 and #15 are merged. #8 went into #4's branch and reached `main` with #4; #9 went into `feat/modules-glob` and was brought into `main` by #18.
+
+**Why:** The rotation gives every member a turn as code steward before CP2.
+
+**Open items for the new steward:**
+- Unowned files (README.md, DECISIONS.md, pyproject.toml, .gitignore) are in no module and ask no owner; the issue is not opened yet.
+- Correction of the merge plan above: `main` is protected by a ruleset (a pull request with 1 approval, no force push). It does not require the `changesignal/owner-ack` status yet.
+- How the AI card workflow gets `LLM_API_KEY` is undecided: the environment now allows only `main`, but our workflow runs on pull requests and executes the PR head's code. Asked 李秉倫.
+- The merge-day fresh-clone test (clone, follow only the README, run the main task) is not recorded yet.
+
+**Led by:** wonlin91 (handoff), FatFang (steward).
