@@ -165,3 +165,15 @@
 **Known limits:** GitHub has no `pull_request_review_target`, so a PR can still edit the review workflow, or add its own workflow, and write a green `changesignal/owner-ack` status; any Actions-based status can be forged by a collaborator, and only a GitHub App would remove this. Two PRs with the same head commit share one status. The PR that introduces this change has no card of its own, because `main` does not yet have the `pull_request_target` workflow; it was reviewed by hand.
 
 **Led by:** 李秉倫 (card.py and workflows drafted with Claude; reviewed by Codex twice)
+
+## 2026-11-24 — Rule-based PR reason detection (Issue #11)
+
+**What:** Added `changesignal/reason.py` with a `has_reason(body: str | None) -> bool` function as a fallback when AI-based reason detection is unavailable. The function removes PR template boilerplate, including HTML comments, Markdown headings, placeholders, checkboxes, empty field labels, and generated signatures. If a "What and why" or "What this PR does" section exists, only that section is checked. A PR is considered to contain a reason when at least 10 non-whitespace characters remain.
+
+**Why:** The previous fallback only checked whether the PR description was empty. An unchanged PR template could therefore be incorrectly treated as a meaningful explanation. The new rule reduces false positives and helps module owners identify PRs without an actual explanation.
+
+**Alternative rejected:** Checking only whether the PR description is non-empty, because template headings and placeholders can satisfy that condition without providing a reason.
+
+**Known limits:** The 10-character threshold is a simple heuristic and does not verify the semantic quality of the explanation. Valid reasons shorter than 10 characters may be rejected, while unrelated text longer than 10 characters may be accepted.
+
+**Led by:** 陳苡翔 (yixiang0706). **Issue:** #11.
