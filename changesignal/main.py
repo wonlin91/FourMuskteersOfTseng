@@ -61,18 +61,20 @@ def reconcile(api, pr, changed_files, event_name, modules, patches=None, write_c
               if a["kind"] == "owned_path" and a["owner"].lower() != author}
     suggested = {a["owner"].lower(): a["owner"] for a in affected
                  if a["kind"] == "possible_caller" and a["owner"].lower() not in owners}
-    reviews = api.list_reviews(number)
-    approved = approved_owners(reviews, head)
-    missing = sorted(owners[o] for o in owners if o not in approved)
-
     # Card: redo it when it is missing or describes an older commit, and on any PR event
-    # ("edited" refreshes the reason).
+    # ("edited" refreshes the reason). This comes BEFORE reading the reviews: the AI call is
+    # slow, and a verdict computed from reviews read before it could overwrite a newer one
+    # (e.g. an approval dismissed during the call).
     existing = api.find_card(number)
     if write_card and (existing is None or existing["head"] != head or event_name in PR_EVENTS):
         if "diff" not in pr:
             pr["diff"] = api.get_diff(number)
         card = build_card(pr, affected)
         api.upsert_card(number, head, card["markdown"], existing)
+
+    reviews = api.list_reviews(number)
+    approved = approved_owners(reviews, head)
+    missing = sorted(owners[o] for o in owners if o not in approved)
 
     # Requests: ask every missing owner who is not already asked and has not reviewed this
     # commit yet. Stateless, so a failed request is retried on the next run, while an owner

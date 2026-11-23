@@ -270,3 +270,19 @@ def test_pull_request_target_event_refreshes_card_and_review_run_does_not():
     api = FakeAPI(card_head=OLD)
     reconcile(api, pr(), ["app/card.py"], "pull_request_review", MODULES, write_card=False)
     assert api.cards == [] and api.statuses[-1][1] == "pending"
+
+
+def test_reviews_are_read_after_the_slow_card_step():
+    order = []
+
+    class Ordered(FakeAPI):
+        def upsert_card(self, *a, **k):
+            order.append("card")
+            super().upsert_card(*a, **k)
+
+        def list_reviews(self, number):
+            order.append("reviews")
+            return super().list_reviews(number)
+
+    reconcile(Ordered(), pr(), ["app/card.py"], "pull_request_target", MODULES)
+    assert order == ["card", "reviews"]
