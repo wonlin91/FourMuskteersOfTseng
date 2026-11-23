@@ -34,7 +34,7 @@ def _login(review):
     return ((review.get("user") or {}).get("login") or "").lower()
 
 
-def reconcile(api, pr, changed_files, event_name, modules):
+def reconcile(api, pr, changed_files, event_name, modules, patches=None):
     number, head = pr["number"], pr["head_sha"]
     if pr.get("changed_files", 0) > MAX_PR_FILES:
         api.set_status(head, "failure",
@@ -42,7 +42,7 @@ def reconcile(api, pr, changed_files, event_name, modules):
         return {"affected": [], "missing": [], "state": "failure"}
 
     affected = find_affected(changed_files, modules, pr["author"])
-    affected += find_callers(changed_files, modules)
+    affected += find_callers(changed_files, modules, ".", patches)
 
     author = pr["author"].lower()
     owners = {a["owner"].lower(): a["owner"] for a in affected if a["owner"].lower() != author}
@@ -97,7 +97,7 @@ def run(api, number, event_name):
         pr = api.get_pr(number)
         if pr["changed_files"] > MAX_PR_FILES:
             return reconcile(api, pr, [], event_name, [])
-        files = api.list_pr_files(number)
+        files, patches = api.list_pr_changes(number)
         latest = api.get_pr(number)
         if (latest["head_sha"], latest["base_sha"]) == (pr["head_sha"], pr["base_sha"]):
             break
@@ -110,7 +110,7 @@ def run(api, number, event_name):
     except ModuleMapError as e:
         api.set_status(pr["head_sha"], "failure", f"Invalid {MODULES_PATH}: {e}")
         raise
-    return reconcile(api, pr, files, event_name, modules)
+    return reconcile(api, pr, files, event_name, modules, patches)
 
 
 def main():

@@ -166,8 +166,8 @@ def test_head_that_keeps_moving_ends_pending_not_green():
             Moving.n += 1
             return dict(pr(), head_sha=f"{Moving.n:040d}")
 
-        def list_pr_files(self, number):
-            return ["app/card.py"]
+        def list_pr_changes(self, number):
+            return ["app/card.py"], {}
 
     api = Moving()
     assert run(api, 1, "pull_request")["state"] == "pending"
@@ -179,8 +179,8 @@ def test_invalid_base_map_sets_failure():
         def get_pr(self, number):
             return pr()
 
-        def list_pr_files(self, number):
-            return ["app/card.py"]
+        def list_pr_changes(self, number):
+            return ["app/card.py"], {}
 
         def get_file(self, path, ref):
             return "module: oops"

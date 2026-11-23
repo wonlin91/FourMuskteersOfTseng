@@ -77,3 +77,13 @@
 **Why:** We stopped reviewing in rounds here. The remaining issue needs the ownership map to change while PRs are open, which is rare in a four-person team; we record it rather than delay the skeleton.
 
 **Led by:** 李秉倫 (review by Codex; fix drafted with Claude)
+
+## 2026-11-23 — AI impact card with Claude; caller detection with `ast`
+
+**What:** `card.py` asks Claude (`claude-opus-5-5`, effort `medium`, JSON-schema structured output) to write three parts of the card: what changed, what might break in each affected module, and up to three things the owner should check. Inputs: PR title and description, the rule-based affected modules, possible callers with code snippets, and the diff (cut at 150,000 characters, which the card then says). `callers.py` finds code in other modules that calls a function or class the PR changed, by parsing Python files with `ast`. Server-side refusal fallback is on (`fallbacks: "default"`).
+
+**Why:** Interviewee B's problem was "I know which function I changed, but not where others use it". The rule-based owner list alone tells the owner *that* their module is touched, not *what might break*. The AI is fail-soft: if the call fails, refuses, or no key is set, the card is still posted with the rule-based list, and the merge gate never depends on the AI.
+
+**Alternatives rejected:** a cheaper model (Sonnet/Haiku) — we start with the most capable model and will compare once we have a prompt test suite; letting the AI decide who must sign off — rejected in CP1, because an AI guess about callers can be wrong.
+
+**Led by:** 李秉倫 (callers.py and card.py drafted with Claude subagents; reviewed by Codex)

@@ -40,3 +40,7 @@ jobs:
       - run: python -m changesignal.main
         env:
           GH_TOKEN: ${{ github.token }}
+          # Either secret name works. Without a key the card is posted without the AI summary.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || secrets.LLM_API_KEY }}
+          # Card language: set the repository variable CHANGESIGNAL_LANG to "zh-TW" for Chinese.
+          CHANGESIGNAL_LANG: ${{ vars.CHANGESIGNAL_LANG || 'en' }}
