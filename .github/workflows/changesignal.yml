@@ -22,6 +22,16 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      # Fail closed: clear any earlier green on this commit before anything can fail
+      # (e.g. pip install failing on the run for a dismissed approval).
+      - name: Mark owner-ack pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: >
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA"
+          -f state=pending -f context=changesignal/owner-ack
+          -f description="ChangeSignal is checking this commit..."
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:

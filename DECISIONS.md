@@ -69,3 +69,11 @@
 **Why:** The rule we follow is that ChangeSignal may wrongly block a PR but must never wrongly let one through.
 
 **Led by:** 李秉倫 (review by Codex; fixes drafted with Claude)
+
+## 2026-11-23 — Third Codex review of PR #4 (blockers only)
+
+**What:** We asked Codex to report only issues that could turn `changesignal/owner-ack` green without the owner's approval. Fixed: the workflow now sets the status to pending as its first step, before installing anything, so a run that fails early (e.g. on a dismissed approval) cannot leave an old green status. Deferred: when `modules.yml` changes on `main`, open PRs are not re-checked, so a PR that was green before a file gained an owner stays green. This needs a new trigger (push to `main` touching the map → re-run every open PR) and is planned as a follow-up PR.
+
+**Why:** We stopped reviewing in rounds here. The remaining issue needs the ownership map to change while PRs are open, which is rare in a four-person team; we record it rather than delay the skeleton.
+
+**Led by:** 李秉倫 (review by Codex; fix drafted with Claude)
