@@ -30,6 +30,7 @@ modules:
     paths:
       - "changesignal/card.py"
       - "changesignal/prompts/"
+      - "changesignal/reason.py"
     interfaces: ["build_card"]
 
   - name: practice-and-tests

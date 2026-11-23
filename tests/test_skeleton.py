@@ -166,8 +166,8 @@ def test_head_that_keeps_moving_ends_pending_not_green():
             Moving.n += 1
             return dict(pr(), head_sha=f"{Moving.n:040d}")
 
-        def list_pr_files(self, number):
-            return ["app/card.py"]
+        def list_pr_changes(self, number):
+            return ["app/card.py"], {}
 
     api = Moving()
     assert run(api, 1, "pull_request")["state"] == "pending"
@@ -179,8 +179,8 @@ def test_invalid_base_map_sets_failure():
         def get_pr(self, number):
             return pr()
 
-        def list_pr_files(self, number):
-            return ["app/card.py"]
+        def list_pr_changes(self, number):
+            return ["app/card.py"], {}
 
         def get_file(self, path, ref):
             return "module: oops"
@@ -229,3 +229,60 @@ def test_one_bad_reviewer_does_not_block_the_others():
     api.session.post = post
     assert api.request_reviewers(1, ["Bob", "ghost"]) == ["ghost"]
     assert ["Bob"] in calls
+
+
+def test_callers_in_authors_own_module_are_left_off(monkeypatch):
+    import changesignal.main as main_mod
+    monkeypatch.setattr(main_mod, "find_callers", lambda *a: [
+        {"module": "pipeline", "owner": "alice", "kind": "possible_caller", "location": "app/main.py:3"},
+        {"module": "card", "owner": "Bob", "kind": "possible_caller", "location": "app/card.py:9"}])
+    result = reconcile(FakeAPI(), pr(), ["practice/x.py"], "pull_request", MODULES)
+    assert [a["owner"] for a in result["affected"] if a["kind"] == "possible_caller"] == ["Bob"]
+
+
+def test_checkout_not_at_pr_head_does_not_judge():
+    class Moved(FakeAPI):
+        def get_pr(self, number):
+            return pr()
+
+        def list_pr_changes(self, number):
+            return ["app/card.py"], {}
+
+    api = Moved()
+    assert run(api, 1, "pull_request", checkout_sha="f" * 40)["state"] == "pending"
+    assert api.statuses[-1][1] == "pending" and api.requested == []
+
+
+def test_caller_owner_is_asked_but_does_not_block(monkeypatch):
+    import changesignal.main as main_mod
+    monkeypatch.setattr(main_mod, "find_callers", lambda *a: [
+        {"module": "practice", "owner": "Carol", "kind": "possible_caller", "location": "practice/x.py:3"}])
+    api = FakeAPI([review("bob", "APPROVED")])
+    result = reconcile(api, pr(), ["app/card.py"], "pull_request", MODULES)
+    assert result["state"] == "success"          # Bob (owned path) approved; Carol only suggested
+    assert api.requested == [["Carol"]]          # but Carol is still asked to look
+
+
+def test_pull_request_target_event_refreshes_card_and_review_run_does_not():
+    api = FakeAPI(card_head=HEAD)
+    reconcile(api, pr(), ["app/card.py"], "pull_request_target", MODULES)
+    assert len(api.cards) == 1
+    api = FakeAPI(card_head=OLD)
+    reconcile(api, pr(), ["app/card.py"], "pull_request_review", MODULES, write_card=False)
+    assert api.cards == [] and api.statuses[-1][1] == "pending"
+
+
+def test_reviews_are_read_after_the_slow_card_step():
+    order = []
+
+    class Ordered(FakeAPI):
+        def upsert_card(self, *a, **k):
+            order.append("card")
+            super().upsert_card(*a, **k)
+
+        def list_reviews(self, number):
+            order.append("reviews")
+            return super().list_reviews(number)
+
+    reconcile(Ordered(), pr(), ["app/card.py"], "pull_request_target", MODULES)
+    assert order == ["card", "reviews"]

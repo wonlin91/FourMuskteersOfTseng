@@ -130,6 +130,16 @@
 
 **Led by:** wonlin91 (code steward)
 
+## 2026-11-23 — Possible callers are suggested reviewers, not required sign-offs
+
+**What:** Owners of touched paths (rule-based) must approve before merge. Owners of modules that only *call* changed code (found by `ast` caller detection) are requested as reviewers and shown on the card, but do not block the merge.
+
+**Why:** Codex's review of the caller-detection branch found several ways static analysis misses callers (calls added on the base branch, decorators — now fixed —, overlapping module paths, per-file import tracking). If callers' owners were required, every miss would be a silent pass and every false match would block an unrelated owner. This matches CP1's human–AI boundary: "whether a suggested possible caller also needs review — the owner of that module decides; they can dismiss it."
+
+**Alternative rejected:** requiring callers' owners to sign off (makes a heuristic part of the gate).
+
+**Led by:** 李秉倫 (review by Codex)
+
 ## 2026-11-23 — Prompt test cases and how they are checked
 
 **What:** Prompt tests for the AI impact card live in `evals/` (issue #12). Each case is one JSON file in `evals/prompt_cases/` with the PR, the `affected` list and an `expect` block. The runner checks only machine-checkable properties: `reason_given` equals the expected value; `impacts_include` / `impacts_exclude` match module names (case-insensitive, substring, so "scoring (bob)" counts as scoring); `impacts_subset_of_affected` fails any module the detector did not report; `must_not_contain` is a whole-word, any-case search over all card text; `zh-TW` cases need Chinese in `what_changed`. A missing draft or a crash fails the case. Every report records the model and the prompt file's commit and sha256. Real runs are manual, not in CI.
@@ -139,3 +149,41 @@
 **Alternatives considered:** an LLM judge that grades the wording (not chosen: costs a second call per case and its verdict can drift between runs); exact-match on the whole output (not chosen: wording changes on every run); running the suite in CI (not chosen: needs a secret and costs money on every push).
 
 **Led by:** FatFang. **Issue:** #12.
+
+## 2026-11-24 — Code steward handoff: wonlin91 → FatFang
+
+**What:** FatFang is the current code steward from this date, taking over from wonlin91 (steward since 2026-11-23, see the rotation entry above). Handoff note from wonlin91: #4, #8, #9 and #15 are merged. #8 went into #4's branch and reached `main` with #4; #9 went into `feat/modules-glob` and was brought into `main` by #18.
+
+**Why:** The rotation gives every member a turn as code steward before CP2.
+
+**Open items for the new steward:**
+- Unowned files (README.md, DECISIONS.md, pyproject.toml, .gitignore) are in no module and ask no owner; the issue is not opened yet.
+- Correction of the merge plan above: `main` is protected by a ruleset (a pull request with 1 approval, no force push). It does not require the `changesignal/owner-ack` status yet.
+- How the AI card workflow gets `LLM_API_KEY` is undecided: the environment now allows only `main`, but our workflow runs on pull requests and executes the PR head's code. Asked 李秉倫.
+- The merge-day fresh-clone test (clone, follow only the README, run the main task) is not recorded yet.
+
+**Led by:** wonlin91 (handoff), FatFang (steward).
+
+## 2026-11-24 — AI impact card with Claude; the API key stays out of PR code
+
+**What:** `card.py` asks Claude (`claude-opus-5-5`, structured JSON output) to write three parts of the card: what changed, what might break in each affected module, and up to three checks for the owner. The card is fail-soft: if the call fails, refuses or returns an unexpected shape, the rule-based card is still posted, and the merge gate never depends on the AI. AI-written text is shown as plain single lines so it cannot hide the owner table. PR events run through `pull_request_target`: the workflow and ChangeSignal's code come from `main`, and the PR head is checked out only to be parsed. The key is a secret of the `LLM_API_KEY` environment, which only `main` may use. Review events run in a separate workflow without the key and do not rewrite the card. Both workflows share one concurrency group per PR, so their runs never overlap and an older run cannot overwrite a newer `owner-ack` verdict (raised by 陳苡翔 in review of #22); the cost is that a queued card update can be replaced by a review run, leaving the card one push behind until the next PR event.
+
+**Why:** Owners need "what might break", not only "your module was touched" (interviewee B). Codex's review of the first version (closed PR #7) showed that PR code ran with the key, so any collaborator's PR could read it.
+
+**Alternatives rejected:** a cheaper model (we will compare once the prompt test suite, #12, has run); letting the AI decide who must sign off (CP1 human–AI boundary); keeping `pull_request` with the key in a repository secret (PR code can read it).
+
+**Known limits:** GitHub has no `pull_request_review_target`, so a PR can still edit the review workflow, or add its own workflow, and write a green `changesignal/owner-ack` status; any Actions-based status can be forged by a collaborator, and only a GitHub App would remove this. Two PRs with the same head commit share one status. The PR that introduces this change has no card of its own, because `main` does not yet have the `pull_request_target` workflow; it was reviewed by hand.
+
+**Led by:** 李秉倫 (card.py and workflows drafted with Claude; reviewed by Codex twice)
+
+## 2026-11-24 — Rule-based PR reason detection (Issue #11)
+
+**What:** Added `changesignal/reason.py` with a `has_reason(body: str | None) -> bool` function as a fallback when AI-based reason detection is unavailable. The function removes PR template boilerplate, including HTML comments, Markdown headings, placeholders, checkboxes, empty field labels, and generated signatures. If a "What and why" or "What this PR does" section exists, only that section is checked. A PR is considered to contain a reason when at least 10 non-whitespace characters remain.
+
+**Why:** The previous fallback only checked whether the PR description was empty. An unchanged PR template could therefore be incorrectly treated as a meaningful explanation. The new rule reduces false positives and helps module owners identify PRs without an actual explanation.
+
+**Alternative rejected:** Checking only whether the PR description is non-empty, because template headings and placeholders can satisfy that condition without providing a reason.
+
+**Known limits:** The 10-character threshold is a simple heuristic and does not verify the semantic quality of the explanation. Valid reasons shorter than 10 characters may be rejected, while unrelated text longer than 10 characters may be accepted.
+
+**Led by:** 陳苡翔 (yixiang0706). **Issue:** #11.
