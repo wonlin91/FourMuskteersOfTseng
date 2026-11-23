@@ -3,7 +3,6 @@ import json
 from types import SimpleNamespace
 
 import anthropic
-import httpx2
 
 from changesignal.card import build_card
 
@@ -62,7 +61,7 @@ def test_ai_saying_no_reason_flags_missing_reason():
 
 
 def test_api_error_still_posts_rule_based_card():
-    err = anthropic.APIConnectionError(request=httpx2.Request("POST", "https://api.anthropic.com"))
+    err = anthropic.APIConnectionError(request=None)  # no need to import the SDK's HTTP library
     md = build_card(PR, AFFECTED, FakeClient(error=err))["markdown"]
     assert "AI summary unavailable" in md and "@bob" in md
 
