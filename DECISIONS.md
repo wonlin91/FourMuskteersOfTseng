@@ -153,3 +153,15 @@
 - The merge-day fresh-clone test (clone, follow only the README, run the main task) is not recorded yet.
 
 **Led by:** wonlin91 (handoff), FatFang (steward).
+
+## 2026-11-24 — AI impact card with Claude; the API key stays out of PR code
+
+**What:** `card.py` asks Claude (`claude-opus-5-5`, structured JSON output) to write three parts of the card: what changed, what might break in each affected module, and up to three checks for the owner. The card is fail-soft: if the call fails, refuses or returns an unexpected shape, the rule-based card is still posted, and the merge gate never depends on the AI. AI-written text is shown as plain single lines so it cannot hide the owner table. PR events run through `pull_request_target`: the workflow and ChangeSignal's code come from `main`, and the PR head is checked out only to be parsed. The key is a secret of the `LLM_API_KEY` environment, which only `main` may use. Review events run in a separate workflow without the key and do not rewrite the card. Both workflows share one concurrency group per PR, so their runs never overlap and an older run cannot overwrite a newer `owner-ack` verdict (raised by 陳苡翔 in review of #22); the cost is that a queued card update can be replaced by a review run, leaving the card one push behind until the next PR event.
+
+**Why:** Owners need "what might break", not only "your module was touched" (interviewee B). Codex's review of the first version (closed PR #7) showed that PR code ran with the key, so any collaborator's PR could read it.
+
+**Alternatives rejected:** a cheaper model (we will compare once the prompt test suite, #12, has run); letting the AI decide who must sign off (CP1 human–AI boundary); keeping `pull_request` with the key in a repository secret (PR code can read it).
+
+**Known limits:** GitHub has no `pull_request_review_target`, so a PR can still edit the review workflow, or add its own workflow, and write a green `changesignal/owner-ack` status; any Actions-based status can be forged by a collaborator, and only a GitHub App would remove this. Two PRs with the same head commit share one status. The PR that introduces this change has no card of its own, because `main` does not yet have the `pull_request_target` workflow; it was reviewed by hand.
+
+**Led by:** 李秉倫 (card.py and workflows drafted with Claude; reviewed by Codex twice)
