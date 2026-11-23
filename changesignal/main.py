@@ -6,6 +6,7 @@ before anything can go wrong, and any error leaves it red, never green.
 """
 import json
 import os
+import subprocess
 from pathlib import Path
 
 from .callers import find_callers
@@ -34,7 +35,7 @@ def _login(review):
     return ((review.get("user") or {}).get("login") or "").lower()
 
 
-def reconcile(api, pr, changed_files, event_name, modules):
+def reconcile(api, pr, changed_files, event_name, modules, patches=None):
     number, head = pr["number"], pr["head_sha"]
     if pr.get("changed_files", 0) > MAX_PR_FILES:
         api.set_status(head, "failure",
@@ -42,10 +43,18 @@ def reconcile(api, pr, changed_files, event_name, modules):
         return {"affected": [], "missing": [], "state": "failure"}
 
     affected = find_affected(changed_files, modules, pr["author"])
-    affected += find_callers(changed_files, modules)
-
     author = pr["author"].lower()
-    owners = {a["owner"].lower(): a["owner"] for a in affected if a["owner"].lower() != author}
+    # Callers in the author's own modules need no one else's sign-off; leave them off the card.
+    affected += [c for c in find_callers(changed_files, modules, ".", patches)
+                 if c["owner"].lower() != author]
+
+    # Owners of touched paths must sign off (rule). Owners of possible callers are asked to
+    # review but do not block: caller detection is a guess (CP1: the owner decides whether
+    # a suggested caller matters).
+    owners = {a["owner"].lower(): a["owner"] for a in affected
+              if a["kind"] == "owned_path" and a["owner"].lower() != author}
+    suggested = {a["owner"].lower(): a["owner"] for a in affected
+                 if a["kind"] == "possible_caller" and a["owner"].lower() not in owners}
     reviews = api.list_reviews(number)
     approved = approved_owners(reviews, head)
     missing = sorted(owners[o] for o in owners if o not in approved)
@@ -64,7 +73,9 @@ def reconcile(api, pr, changed_files, event_name, modules):
     # who just requested changes is not asked again because the author edited the PR text.
     asked = {login.lower() for login in api.requested_logins(number)}
     reviewed_here = {_login(r) for r in reviews if r.get("commit_id") == head}
-    to_request = [m for m in missing if m.lower() not in asked and m.lower() not in reviewed_here]
+    to_request = [m for m in missing + sorted(suggested.values())
+                  if m.lower() not in asked and m.lower() not in reviewed_here
+                  and m.lower() not in approved]
     failed = api.request_reviewers(number, to_request) if to_request else []
 
     if not owners:
@@ -90,14 +101,16 @@ def load_modules_for(api, pr):
     return parse_modules(text)
 
 
-def run(api, number, event_name):
+def run(api, number, event_name, checkout_sha=None):
+    """checkout_sha: the commit checked out on disk. Caller detection parses those files
+    with line numbers from the PR patch, so they must be the PR head the patch describes."""
     # Fetch fresh state (the event can be stale) and make sure no push or base change
     # landed while we were listing files.
     for _ in range(3):
         pr = api.get_pr(number)
         if pr["changed_files"] > MAX_PR_FILES:
             return reconcile(api, pr, [], event_name, [])
-        files = api.list_pr_files(number)
+        files, patches = api.list_pr_changes(number)
         latest = api.get_pr(number)
         if (latest["head_sha"], latest["base_sha"]) == (pr["head_sha"], pr["base_sha"]):
             break
@@ -105,12 +118,25 @@ def run(api, number, event_name):
         api.set_status(latest["head_sha"], "pending", "PR kept changing during the check; re-run the job.")
         return {"state": "pending", "affected": [], "missing": []}
 
+    if checkout_sha and checkout_sha != pr["head_sha"]:
+        # A newer push arrived after this run started; its own run checks the new head.
+        api.set_status(pr["head_sha"], "pending", "PR changed while checking; the run for the newest push decides.")
+        return {"state": "pending", "affected": [], "missing": []}
+
     try:
         modules = load_modules_for(api, pr)
     except ModuleMapError as e:
         api.set_status(pr["head_sha"], "failure", f"Invalid {MODULES_PATH}: {e}")
         raise
-    return reconcile(api, pr, files, event_name, modules)
+    return reconcile(api, pr, files, event_name, modules, patches)
+
+
+def _checkout_sha():
+    try:
+        out = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
+        return out.stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None  # not a git checkout (e.g. local runs): skip the check
 
 
 def main():
@@ -119,11 +145,18 @@ def main():
     api = GitHubAPI(os.environ["GITHUB_REPOSITORY"], os.environ["GH_TOKEN"])
     number = event["pull_request"]["number"]
 
-    # Fail closed: replace any earlier verdict on this commit before doing anything fallible.
     head = api.get_pr(number)["head_sha"]
+    checkout = _checkout_sha()
+    if checkout and checkout != head:
+        # An old run (e.g. re-run from the Actions tab) for a commit that is no longer the PR
+        # head: touch nothing, so it cannot overwrite the current head's verdict.
+        print(f"Checked-out {checkout[:7]} is not the PR head {head[:7]}; nothing to do.")
+        return
+
+    # Fail closed: replace any earlier verdict on this commit before doing anything fallible.
     api.set_status(head, "pending", "ChangeSignal is checking this commit...")
     try:
-        result = run(api, number, event_name)
+        result = run(api, number, event_name, checkout)
     except ModuleMapError:
         raise  # status already set to failure with the reason
     except Exception as e:
