@@ -188,6 +188,22 @@
 
 **Led by:** 陳苡翔 (yixiang0706). **Issue:** #11.
 
+## 2026-11-24 — Code steward handoff: FatFang → yixiang0706
+
+**What:** yixiang0706 is the current code steward from this date, taking over from FatFang (steward since the handoff in #21). Handoff note from FatFang: as steward I approved #22 (AI card) and #23 (reason detection), each with a comment on the tests I read and ran locally. Two of my own PRs are open and need another member to approve and merge them: #19 (prompt test suite, issue #12) first, then #20 (session metrics, issue #14), which is stacked on #19. Both are up to date with `main`.
+
+**Why:** The rotation gives every member a turn as code steward before CP2; yixiang0706 is next in the rotation entry above.
+
+**Open items for the new steward:**
+- Merge #19, then #20. Once #19 is in `main`, #20 shows only its own files.
+- Issue #13 (prompt fix loop) can start after #19: the first real run of `python evals/run_prompt_tests.py` needs `ANTHROPIC_API_KEY`, and its report goes to the card owner.
+- Unowned files (README.md, DECISIONS.md, pyproject.toml, .gitignore) are still in no module; the issue is not opened yet.
+- Whether the `main` ruleset requires `changesignal/owner-ack` was not checked during this turn.
+- The merge-day fresh-clone test (clone, follow only the README, run the main task) is still not recorded.
+- Closed since the last handoff: how the AI card gets its API key (#22: `pull_request_target`, key in the `LLM_API_KEY` environment).
+
+**Led by:** FatFang (handoff), yixiang0706 (steward).
+
 ## 2026-11-24 — How the evaluation metrics are defined
 
 **What:** `evals/session_metrics.py` (issue #14) reads the GitHub records of each PR. An **owner** is anyone asked to review, except the author and anyone whose request was removed and not made again. The **card time** is the first `github-actions[bot]` comment that starts with `<!-- changesignal head=`. An owner's **decision** is their first `APPROVED` or `CHANGES_REQUESTED` review; a plain comment is not a decision. We also report the time to the first approval. **Reviewed before merge** means every owner submitted any review before the merge time; PRs that were not merged or had no owners are left out of the ratio. Medians leave out PRs that have no value.
