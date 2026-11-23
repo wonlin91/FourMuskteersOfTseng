@@ -1,9 +1,12 @@
 """Module map loading and rule-based owner detection.  Owner: wonlin91 (detect).
 
-Walking-skeleton version: folder-prefix and exact-path matching only.
-TODO (detect): glob patterns, validation of modules.yml (missing owner, overlapping paths),
+Paths are folder prefixes ("dir/"), exact files, or globs (`*`, `?`, `**`).
+TODO (detect): stricter validation of modules.yml (duplicate names, owner format, overlapping paths),
 clearer errors for a malformed map.
 """
+import functools
+import re
+
 import yaml
 
 
@@ -33,7 +36,39 @@ def load_modules(path=".changesignal/modules.yml"):
         return parse_modules(f.read())
 
 
+@functools.lru_cache(maxsize=256)
+def _glob_to_regex(pattern):
+    """Translate a path glob to a compiled regex.
+
+    `*` and `?` stay inside one path segment (never cross "/"), unlike fnmatch.
+    `**/` matches zero or more whole folders; a `**` anywhere else matches anything.
+    Written by hand because glob.translate / PurePath.full_match need Python 3.13 (CI runs 3.11).
+    """
+    out, i = [], 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out.append("(?:.*/)?")
+            i += 3
+        elif pattern.startswith("**", i):
+            out.append(".*")
+            i += 2
+        elif pattern[i] == "*":
+            out.append("[^/]*")
+            i += 1
+        elif pattern[i] == "?":
+            out.append("[^/]")
+            i += 1
+        else:
+            out.append(re.escape(pattern[i]))
+            i += 1
+    return re.compile("".join(out))
+
+
+
 def _matches(file, pattern):
+    """Does `file` fall under `pattern`? (folder prefix "dir/", exact path, or a glob)"""
+    if "*" in pattern or "?" in pattern:
+        return _glob_to_regex(pattern).fullmatch(file) is not None
     if pattern.endswith("/"):
         return file.startswith(pattern)
     return file == pattern
