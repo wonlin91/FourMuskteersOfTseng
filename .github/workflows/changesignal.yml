@@ -5,7 +5,7 @@ name: ChangeSignal
 # Security: `pull_request_target` runs this workflow file and ChangeSignal's own code from the
 # BASE branch, never from the PR. The PR head is checked out into `pr-head/` only so that
 # caller detection can parse it with `ast` (parsing does not run the code). The API key is an
-# environment secret of `changesignal`, which only the default branch may use, so a workflow
+# environment secret of `LLM_API_KEY`, an environment that only the default branch may use, so a workflow
 # added or edited inside a PR cannot read it. Review events are handled by
 # changesignal-review.yml, which gets no key.
 on:
@@ -26,7 +26,7 @@ jobs:
     # Fork PRs are not supported (their authors are not collaborators we can request).
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    environment: changesignal
+    environment: LLM_API_KEY
     steps:
       # Fail closed: clear any earlier green on this commit before anything can fail.
       - name: Mark owner-ack pending
@@ -52,7 +52,7 @@ jobs:
       - run: python -m changesignal.main
         env:
           GH_TOKEN: ${{ github.token }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.LLM_API_KEY }}
           CHANGESIGNAL_REPO_ROOT: pr-head
           # Card language: set the repository variable CHANGESIGNAL_LANG to "zh-TW" for Chinese.
           CHANGESIGNAL_LANG: ${{ vars.CHANGESIGNAL_LANG || 'en' }}
