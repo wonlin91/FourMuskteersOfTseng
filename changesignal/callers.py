@@ -30,6 +30,7 @@ Known limits (results are "possible" callers, not proof, and some callers are mi
 - Only Python is analysed: callers in other languages, configs, notebooks or templates
   are not found, and files that fail to parse are skipped.
 - Test files (tests/, test_*.py, *_test.py, conftest.py) are not reported as callers.
+- Symbolic links, and files that resolve outside the scanned folder, are never read.
 - Only the PR head is scanned, so a call added on the base branch after the PR branched off
   is not seen until the PR is updated from the base branch.
 - Deleting the last statement of a function when blank lines surround the gap may not mark
@@ -82,7 +83,7 @@ def find_callers(changed_files, modules, repo_root=".", patches=None, max_snippe
         module = _module_of(path, modules)
         if module is None:
             continue
-        source, tree = _parse(root / path)
+        source, tree = _parse(root, path)
         if tree is None:
             continue
         first_call = {}  # (target, symbol) -> first line it is called on
@@ -109,7 +110,7 @@ def _changed_targets(changed_files, modules, root, patches):
     for path in changed_files:
         if not path.endswith(".py"):
             continue
-        _, tree = _parse(root / path)
+        _, tree = _parse(root, path)
         if tree is None:  # deleted in this PR, unreadable, or not valid Python
             continue
         patch = patches.get(path)
@@ -318,9 +319,14 @@ def _python_files(root):
                 yield (Path(folder) / name).relative_to(root).as_posix()
 
 
-def _parse(file):
-    """(source, ast) or (None, None) when the file is missing, unreadable or not valid Python."""
+def _parse(root, path):
+    """(source, ast) or (None, None) when the file is missing, unreadable, not valid Python,
+    a symbolic link, or resolves outside `root`. The PR head is untrusted: a link inside it
+    must not make us read files elsewhere on the runner."""
+    file = root / path
     try:
+        if file.is_symlink() or not file.resolve().is_relative_to(root.resolve()):
+            return None, None
         source = file.read_text(encoding="utf-8-sig")
         return source, ast.parse(source, filename=str(file))
     except (OSError, ValueError, SyntaxError, RecursionError):  # ValueError: bad encoding

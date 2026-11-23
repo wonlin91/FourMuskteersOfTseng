@@ -184,3 +184,21 @@ def test_bare_decorator_counts_as_a_call(tmp_path):
                {"name": "views", "owner": "bob", "paths": ["views.py"]}]
     found = find_callers(["auth.py"], modules, str(tmp_path), {"auth.py": None})
     assert [(c["owner"], c["symbol"], c["location"]) for c in found] == [("bob", "authorize", "views.py:3")]
+
+
+def test_symlinks_and_files_outside_the_root_are_never_read(tmp_path):
+    import os
+    import pytest
+    from changesignal.callers import _parse
+    root = tmp_path / "pr-head"
+    root.mkdir()
+    secret = tmp_path / "secret.py"
+    secret.write_text("TOKEN = 'abc'\nprint(TOKEN)\n")
+    try:
+        os.symlink(secret, root / "evil.py")
+    except (OSError, NotImplementedError):
+        pytest.skip("cannot create symlinks here")
+    assert _parse(root, "evil.py") == (None, None)
+    assert _parse(root, "../secret.py") == (None, None)
+    (root / "ok.py").write_text("x = 1\n")
+    assert _parse(root, "ok.py")[1] is not None

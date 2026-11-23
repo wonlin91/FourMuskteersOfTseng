@@ -39,6 +39,8 @@ jobs:
           -f description="ChangeSignal is checking this commit..."
       - name: Check out ChangeSignal (base branch, trusted)
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false  # do not leave the token in .git/config
       - name: Check out the PR head (parsed only, never run)
         uses: actions/checkout@v4
         with:
