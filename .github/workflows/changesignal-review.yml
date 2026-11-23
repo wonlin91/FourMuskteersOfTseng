@@ -15,8 +15,12 @@ permissions:
   pull-requests: write
   statuses: write
 
+# Same group in both ChangeSignal workflows: runs for one PR never overlap, so an older
+# run cannot overwrite a newer owner-ack verdict. Cost: if a PR-event run is still queued
+# when a review arrives, GitHub replaces it with the review run; the status is still
+# recomputed correctly, but the card waits for the next push or description edit.
 concurrency:
-  group: changesignal-review-${{ github.event.pull_request.number }}
+  group: changesignal-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
@@ -36,7 +40,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
-          persist-credentials: false
       - name: Check out the PR head (parsed only, never run)
         uses: actions/checkout@v4
         with:
