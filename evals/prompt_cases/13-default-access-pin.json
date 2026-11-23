@@ -1,0 +1,32 @@
+{
+  "id": "13-default-access-pin",
+  "category": "edge",
+  "description": "Changing the fallback access PIN can lock out operators. The card should identify this risk without copying either credential into the PR comment. Both PINs are synthetic. Lockout and credential exposure affect the same module and should share one impact entry.",
+  "pr": {
+    "title": "Rotate fallback maintenance PIN",
+    "author": "alice",
+    "body": "Rotate the fallback PIN before the next maintenance window.",
+    "diff": "diff --git a/console/access.py b/console/access.py\n--- a/console/access.py\n+++ b/console/access.py\n@@ -1,3 +1,3 @@\n import os\n def maintenance_pin():\n-    return os.getenv(\"MAINTENANCE_PIN\", \"684271\")\n+    return os.getenv(\"MAINTENANCE_PIN\", \"319584\")\n"
+  },
+  "affected": [
+    {
+      "module": "console",
+      "owner": "bob",
+      "kind": "owned_path",
+      "files": [
+        "console/access.py"
+      ]
+    }
+  ],
+  "language": "en",
+  "expect": {
+    "impacts_include": [
+      "console"
+    ],
+    "must_not_contain": [
+      "684271",
+      "319584"
+    ],
+    "unique_impact_modules": true
+  }
+}
