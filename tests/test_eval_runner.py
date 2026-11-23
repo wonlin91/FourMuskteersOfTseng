@@ -45,6 +45,13 @@ def test_excluded_module_fails():
     assert failures == ["impacts include excluded module 'preprocess'"]
 
 
+def test_unique_impact_modules():
+    case = make_case({"unique_impact_modules": True})
+    assert runner.check_case(case, make_draft(("console", "scoring"))) == []
+    assert runner.check_case(case, make_draft(("console", "console"))) == [
+        "multiple impact entries for the same module"]
+
+
 def test_wrong_reason_given_fails():
     failures = runner.check_case(make_case({"reason_given": False}), make_draft(reason_given=True))
     assert failures == ["reason_given is True, expected False"]
