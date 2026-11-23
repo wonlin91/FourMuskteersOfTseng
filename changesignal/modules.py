@@ -2,15 +2,19 @@
 
 Walking-skeleton version: folder-prefix and exact-path matching only.
 TODO (detect): glob patterns, validation of modules.yml (missing owner, overlapping paths),
-reading the map from the base branch so a PR cannot edit its own owners away.
+clearer errors for a malformed map.
 """
 import yaml
 
 
+def parse_modules(text):
+    data = yaml.safe_load(text) or {}
+    return data.get("modules", [])
+
+
 def load_modules(path=".changesignal/modules.yml"):
     with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return data.get("modules", [])
+        return parse_modules(f.read())
 
 
 def _matches(file, pattern):
