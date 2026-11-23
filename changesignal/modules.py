@@ -1,9 +1,10 @@
 """Module map loading and rule-based owner detection.  Owner: wonlin91 (detect).
 
 Paths are folder prefixes ("dir/"), exact files, or globs (`*`, `?`, `**`).
-TODO (detect): stricter validation of modules.yml (duplicate names, owner format, overlapping paths),
-clearer errors for a malformed map.
+parse_modules rejects a malformed map with a short ModuleMapError that names the module and the fix
+(the message ends up in a 140-character commit status).
 """
+import difflib
 import functools
 import re
 
@@ -14,6 +15,29 @@ class ModuleMapError(ValueError):
     """The module map is missing or malformed. ChangeSignal must not pass a PR on a broken map."""
 
 
+ALLOWED_KEYS = ("name", "owner", "paths", "interfaces")
+# GitHub login: letters, digits and single "-", not starting or ending with "-", at most 39 chars.
+_OWNER_RE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?")
+
+
+def _label(m, i):
+    """How an error names a module: its name if it has a usable one, else its position."""
+    name = m.get("name") if isinstance(m, dict) else None
+    return f'module "{name}"' if isinstance(name, str) and name else f"module #{i}"
+
+
+def _check_path(label, p):
+    """A path that can never match anything is a silent hole in the map, so reject it."""
+    if not isinstance(p, str) or not p.strip():
+        raise ModuleMapError(f"{label}: paths must be non-empty strings")
+    if p != p.strip():
+        raise ModuleMapError(f'{label}: path "{p}" has spaces around it')
+    if p.startswith("./") or p.startswith("/"):
+        raise ModuleMapError(f'{label}: path "{p}" must be relative to the repo root (no leading "./" or "/")')
+    if "\\" in p:
+        raise ModuleMapError(f'{label}: path "{p}" must use "/" not "\\"')
+
+
 def parse_modules(text):
     try:
         data = yaml.safe_load(text)
@@ -22,12 +46,38 @@ def parse_modules(text):
     modules = data.get("modules") if isinstance(data, dict) else None
     if not isinstance(modules, list) or not modules:
         raise ModuleMapError("needs a non-empty top-level 'modules' list")
+
+    names = {}       # name -> position, to catch duplicate names
+    path_owner = {}  # path -> module name, to catch a path claimed twice
     for i, m in enumerate(modules, 1):
-        ok = (isinstance(m, dict) and isinstance(m.get("name"), str) and isinstance(m.get("owner"), str)
-              and isinstance(m.get("paths"), list) and m["paths"]
-              and all(isinstance(p, str) and p for p in m["paths"]))
-        if not ok:
-            raise ModuleMapError(f"module #{i} needs 'name', 'owner' and a non-empty 'paths' list")
+        label = _label(m, i)
+        if not isinstance(m, dict):
+            raise ModuleMapError(f"{label} must be a mapping with name, owner and paths")
+        for key in m:
+            if key not in ALLOWED_KEYS:
+                hint = difflib.get_close_matches(str(key), ALLOWED_KEYS, n=1)
+                tip = f' (did you mean "{hint[0]}"?)' if hint else f" (allowed: {', '.join(ALLOWED_KEYS)})"
+                raise ModuleMapError(f'{label}: unknown key "{key}"{tip}')
+        for key in ("name", "owner"):
+            if not isinstance(m.get(key), str) or not m[key].strip():
+                raise ModuleMapError(f'{label}: missing "{key}" (a non-empty string)')
+        if not isinstance(m.get("paths"), list) or not m["paths"]:
+            raise ModuleMapError(f'{label}: "paths" must be a non-empty list')
+
+        if m["name"] in names:
+            raise ModuleMapError(f'{label}: name already used by module #{names[m["name"]]}; names must be unique')
+        names[m["name"]] = i
+
+        if not _OWNER_RE.fullmatch(m["owner"]):
+            shown = m["owner"] if len(m["owner"]) <= 12 else m["owner"][:12] + "..."
+            raise ModuleMapError(f'{label}: owner "{shown}" is not a GitHub username '
+                                 "(a-z 0-9 -, max 39, no @ or spaces)")
+
+        for p in m["paths"]:
+            _check_path(label, p)
+            if p in path_owner and path_owner[p] != m["name"]:
+                raise ModuleMapError(f'{label}: path "{p}" is already owned by module "{path_owner[p]}"')
+            path_owner.setdefault(p, m["name"])
     return modules
 
 
