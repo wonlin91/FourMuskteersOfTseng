@@ -203,3 +203,13 @@
 - Closed since the last handoff: how the AI card gets its API key (#22: `pull_request_target`, key in the `LLM_API_KEY` environment).
 
 **Led by:** FatFang (handoff), yixiang0706 (steward).
+
+## 2026-11-24 — How the evaluation metrics are defined
+
+**What:** `evals/session_metrics.py` (issue #14) reads the GitHub records of each PR. An **owner** is anyone asked to review, except the author and anyone whose request was removed and not made again. The **card time** is the first `github-actions[bot]` comment that starts with `<!-- changesignal head=`. An owner's **decision** is their first `APPROVED` or `CHANGES_REQUESTED` review; a plain comment is not a decision. We also report the time to the first approval. **Reviewed before merge** means every owner submitted any review before the merge time; PRs that were not merged or had no owners are left out of the ratio. Medians leave out PRs that have no value.
+
+**Why:** The question for "the owner knew before the merge" is whether the owner looked and responded, not whether they agreed, so any review state counts there. For the time cost, a request for changes is as much a decision as an approval; time to first approval is reported next to it so both readings are available. Removed requests are excluded because, on PR #8, two owners were asked while the branch was stacked on #4 and removed after the base changed to `main`; counting them made a fully reviewed PR look "partial".
+
+**Alternatives considered:** decision = first approval only (not chosen as the main number: a request for changes is the owner deciding; still reported); owners = the module owners of the changed files from `modules.yml` (not chosen: needs the map at that commit, while the review requests are what the owner actually saw); counting `COMMENTED` as a decision (not chosen: a comment can be a question, not a verdict).
+
+**Led by:** FatFang. **Issue:** #14.
