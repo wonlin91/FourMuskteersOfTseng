@@ -77,3 +77,23 @@
 **Why:** We stopped reviewing in rounds here. The remaining issue needs the ownership map to change while PRs are open, which is rare in a four-person team; we record it rather than delay the skeleton.
 
 **Led by:** 李秉倫 (review by Codex; fix drafted with Claude)
+
+## 2026-11-23 — Module map rules: one owner per path, malformed map fails
+
+**What:** In `.changesignal/modules.yml`, a path may belong to only one module, so every file has at most one owner. `**/` matches zero or more folders. A malformed map (unknown key, duplicate name, owner that is not a GitHub username, a path that can never match) fails the check instead of passing.
+
+**Why:** If a file has no clear owner, or a typo hides a path, the owner is silently not asked. That is the failure ChangeSignal exists to prevent. We chose a failed check over a silent pass.
+
+**Alternatives considered:** allowing a path in two modules and asking both owners (not chosen: ownership would be ambiguous). Two different globs that overlap are not detected yet.
+
+**Led by:** wonlin91. **PRs:** #8, #9 (issues #5, #6).
+
+## 2026-11-23 — Code steward handoff
+
+**What:** wonlin91 acted as code steward for PR #4 (walking skeleton), handed over by 李秉倫, who wrote that PR. The review approved commit d16093e and left four items to track: files in no module are ignored; `affected` is not filtered by author in `reconcile`; `find_callers` needs the diff; paths that never match raise no error. wonlin91 is the current code steward from this date.
+
+**Why:** Every member has to be code steward at least once before CP2, and the author of a PR was not the one to approve it.
+
+**Open items:** unowned files (issue to be opened); author filter in `reconcile` (waiting for 李秉倫 to confirm); `find_callers` contract (PR #7 was closed, so unresolved); never-matching paths (done in PR #9).
+
+**Led by:** 李秉倫 (handoff), wonlin91 (steward).
