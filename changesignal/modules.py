@@ -124,11 +124,27 @@ def _matches(file, pattern):
     return file == pattern
 
 
+def _reject_folders_without_slash(changed_files, modules):
+    """Fail closed on a folder written without its trailing "/" (e.g. "changesignal").
+
+    Text alone cannot tell it from a file like "Makefile", but the PR's file list can: if a changed
+    file lives under "<path>/", then <path> is a folder and would otherwise silently match nothing,
+    so its owner would never be asked.
+    """
+    for module in modules:
+        for p in module.get("paths", []):
+            if p.endswith("/") or "*" in p or "?" in p:
+                continue
+            if any(f.startswith(p + "/") for f in changed_files):
+                raise ModuleMapError(f'module "{module["name"]}": path "{p}" is a folder; write "{p}/"')
+
+
 def find_affected(changed_files, modules, author):
     """Return modules owned by someone other than `author` whose paths the PR touches.
 
     -> [{"module": str, "owner": str, "kind": "owned_path", "files": [str]}]
     """
+    _reject_folders_without_slash(changed_files, modules)
     author = author.lower()
     affected = []
     for module in modules:

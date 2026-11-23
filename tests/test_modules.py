@@ -137,3 +137,31 @@ def test_missing_fields_name_the_module(text, fragment):
 def test_wrong_top_level_key_still_fails():
     with pytest.raises(ModuleMapError):
         parse_modules("module:\n  - name: a\n    owner: b\n    paths: [x/]\n")
+
+
+# ---- folder written without the trailing "/" ----
+
+def test_folder_without_slash_is_rejected_when_a_file_inside_changes():
+    modules = [{"name": "detect", "owner": "alice", "paths": ["changesignal"]}]
+    with pytest.raises(ModuleMapError) as exc:
+        find_affected(["changesignal/card.py"], modules, "bob")
+    msg = str(exc.value)
+    assert 'module "detect"' in msg and '"changesignal/"' in msg and len(msg) <= 100
+
+
+def test_folder_without_slash_is_rejected_even_for_the_authors_own_module():
+    modules = [{"name": "detect", "owner": "alice", "paths": ["changesignal"]}]
+    with pytest.raises(ModuleMapError):
+        find_affected(["changesignal/card.py"], modules, "alice")
+
+
+@pytest.mark.parametrize("path, changed", [
+    ("Makefile", ["Makefile"]),                       # a real file with no dot
+    ("LICENSE", ["LICENSE", "docs/a.md"]),
+    ("changesignal", ["README.md"]),                  # folder not touched: nothing is missed
+    ("changesignal/", ["changesignal/card.py"]),      # written correctly
+    ("changesignal/*", ["changesignal/card.py"]),     # glob
+    ("changesignal", ["changesignal2/card.py"]),      # different folder with the same prefix
+])
+def test_valid_or_harmless_paths_are_not_rejected(path, changed):
+    find_affected(changed, [{"name": "m", "owner": "alice", "paths": [path]}], "bob")
