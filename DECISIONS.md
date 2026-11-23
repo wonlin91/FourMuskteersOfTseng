@@ -140,6 +140,20 @@
 
 **Led by:** 李秉倫 (review by Codex)
 
+## 2026-11-24 — Code steward handoff: wonlin91 → FatFang
+
+**What:** FatFang is the current code steward from this date, taking over from wonlin91 (steward since 2026-11-23, see the rotation entry above). Handoff note from wonlin91: #4, #8, #9 and #15 are merged. #8 went into #4's branch and reached `main` with #4; #9 went into `feat/modules-glob` and was brought into `main` by #18.
+
+**Why:** The rotation gives every member a turn as code steward before CP2.
+
+**Open items for the new steward:**
+- Unowned files (README.md, DECISIONS.md, pyproject.toml, .gitignore) are in no module and ask no owner; the issue is not opened yet.
+- Correction of the merge plan above: `main` is protected by a ruleset (a pull request with 1 approval, no force push). It does not require the `changesignal/owner-ack` status yet.
+- How the AI card workflow gets `LLM_API_KEY` is undecided: the environment now allows only `main`, but our workflow runs on pull requests and executes the PR head's code. Asked 李秉倫.
+- The merge-day fresh-clone test (clone, follow only the README, run the main task) is not recorded yet.
+
+**Led by:** wonlin91 (handoff), FatFang (steward).
+
 ## 2026-11-24 — AI impact card with Claude; the API key stays out of PR code
 
 **What:** `card.py` asks Claude (`claude-opus-5-5`, structured JSON output) to write three parts of the card: what changed, what might break in each affected module, and up to three checks for the owner. The card is fail-soft: if the call fails, refuses or returns an unexpected shape, the rule-based card is still posted, and the merge gate never depends on the AI. AI-written text is shown as plain single lines so it cannot hide the owner table. PR events run through `pull_request_target`: the workflow and ChangeSignal's code come from `main`, and the PR head is checked out only to be parsed. The key is a secret of the `LLM_API_KEY` environment, which only `main` may use. Review events run in a separate workflow without the key and do not rewrite the card.
