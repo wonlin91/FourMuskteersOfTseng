@@ -33,9 +33,11 @@ python -m pip install -r requirements.txt pytest
 python -m pytest -q
 ```
 
+Prompt tests for the AI card (not in CI, real runs cost about US$1–2): see [`evals/README.md`](evals/README.md).
+
 | File | What it does | Owner |
 |---|---|---|
 | `.github/workflows/changesignal.yml`, `changesignal/main.py`, `changesignal/github_api.py` | Action, flow, GitHub REST calls | 李秉倫 |
 | `.changesignal/modules.yml`, `changesignal/modules.py`, `changesignal/callers.py` | Module map, owner and caller detection | 蔡旺霖 |
 | `changesignal/card.py`, `changesignal/prompts/` | Impact card and LLM prompt | 陳苡翔 |
-| `practice/`, `tests/` | Practice repository for user tests, test suites | 楊子枋 |
+| `practice/`, `tests/`, `evals/` | Practice repository for user tests, test suites, AI prompt tests | 楊子枋 |

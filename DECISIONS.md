@@ -140,6 +140,16 @@
 
 **Led by:** 李秉倫 (review by Codex)
 
+## 2026-11-23 — Prompt test cases and how they are checked
+
+**What:** Prompt tests for the AI impact card live in `evals/` (issue #12). Each case is one JSON file in `evals/prompt_cases/` with the PR, the `affected` list and an `expect` block. The runner checks only machine-checkable properties: `reason_given` equals the expected value; `impacts_include` / `impacts_exclude` match module names (case-insensitive, substring, so "scoring (bob)" counts as scoring); `impacts_subset_of_affected` fails any module the detector did not report; `must_not_contain` is a whole-word, any-case search over all card text; `zh-TW` cases need Chinese in `what_changed`. A missing draft or a crash fails the case. Every report records the model and the prompt file's commit and sha256. Real runs are manual, not in CI.
+
+**Why:** Fixed rule checks give the same verdict on every run, so a before/after comparison shows a change in the prompt, not a change in the grader. `must_not_contain` is strict on purpose: owners skim the card, so even quoting "approved" from an injected instruction is a failure.
+
+**Alternatives considered:** an LLM judge that grades the wording (not chosen: costs a second call per case and its verdict can drift between runs); exact-match on the whole output (not chosen: wording changes on every run); running the suite in CI (not chosen: needs a secret and costs money on every push).
+
+**Led by:** FatFang. **Issue:** #12.
+
 ## 2026-11-24 — Code steward handoff: wonlin91 → FatFang
 
 **What:** FatFang is the current code steward from this date, taking over from wonlin91 (steward since 2026-11-23, see the rotation entry above). Handoff note from wonlin91: #4, #8, #9 and #15 are merged. #8 went into #4's branch and reached `main` with #4; #9 went into `feat/modules-glob` and was brought into `main` by #18.
