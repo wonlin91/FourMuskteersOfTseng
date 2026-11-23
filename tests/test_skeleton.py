@@ -251,3 +251,13 @@ def test_checkout_not_at_pr_head_does_not_judge():
     api = Moved()
     assert run(api, 1, "pull_request", checkout_sha="f" * 40)["state"] == "pending"
     assert api.statuses[-1][1] == "pending" and api.requested == []
+
+
+def test_caller_owner_is_asked_but_does_not_block(monkeypatch):
+    import changesignal.main as main_mod
+    monkeypatch.setattr(main_mod, "find_callers", lambda *a: [
+        {"module": "practice", "owner": "Carol", "kind": "possible_caller", "location": "practice/x.py:3"}])
+    api = FakeAPI([review("bob", "APPROVED")])
+    result = reconcile(api, pr(), ["app/card.py"], "pull_request", MODULES)
+    assert result["state"] == "success"          # Bob (owned path) approved; Carol only suggested
+    assert api.requested == [["Carol"]]          # but Carol is still asked to look

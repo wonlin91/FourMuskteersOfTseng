@@ -174,3 +174,13 @@ def test_pure_deletion_still_marks_both_sides():
     from changesignal.callers import _touched_lines
     patch = "@@ -1,3 +1,2 @@\n def f():\n-    x = 1\n     return 1\n"
     assert _touched_lines(patch) == {1, 2}
+
+
+def test_bare_decorator_counts_as_a_call(tmp_path):
+    from changesignal.callers import find_callers
+    (tmp_path / "auth.py").write_text("def authorize(f):\n    return f\n")
+    (tmp_path / "views.py").write_text("from auth import authorize\n\n@authorize\ndef home():\n    pass\n")
+    modules = [{"name": "auth", "owner": "alice", "paths": ["auth.py"]},
+               {"name": "views", "owner": "bob", "paths": ["views.py"]}]
+    found = find_callers(["auth.py"], modules, str(tmp_path), {"auth.py": None})
+    assert [(c["owner"], c["symbol"], c["location"]) for c in found] == [("bob", "authorize", "views.py:3")]

@@ -48,7 +48,13 @@ def reconcile(api, pr, changed_files, event_name, modules, patches=None):
     affected += [c for c in find_callers(changed_files, modules, ".", patches)
                  if c["owner"].lower() != author]
 
-    owners = {a["owner"].lower(): a["owner"] for a in affected if a["owner"].lower() != author}
+    # Owners of touched paths must sign off (rule). Owners of possible callers are asked to
+    # review but do not block: caller detection is a guess (CP1: the owner decides whether
+    # a suggested caller matters).
+    owners = {a["owner"].lower(): a["owner"] for a in affected
+              if a["kind"] == "owned_path" and a["owner"].lower() != author}
+    suggested = {a["owner"].lower(): a["owner"] for a in affected
+                 if a["kind"] == "possible_caller" and a["owner"].lower() not in owners}
     reviews = api.list_reviews(number)
     approved = approved_owners(reviews, head)
     missing = sorted(owners[o] for o in owners if o not in approved)
@@ -67,7 +73,9 @@ def reconcile(api, pr, changed_files, event_name, modules, patches=None):
     # who just requested changes is not asked again because the author edited the PR text.
     asked = {login.lower() for login in api.requested_logins(number)}
     reviewed_here = {_login(r) for r in reviews if r.get("commit_id") == head}
-    to_request = [m for m in missing if m.lower() not in asked and m.lower() not in reviewed_here]
+    to_request = [m for m in missing + sorted(suggested.values())
+                  if m.lower() not in asked and m.lower() not in reviewed_here
+                  and m.lower() not in approved]
     failed = api.request_reviewers(number, to_request) if to_request else []
 
     if not owners:
@@ -137,11 +145,18 @@ def main():
     api = GitHubAPI(os.environ["GITHUB_REPOSITORY"], os.environ["GH_TOKEN"])
     number = event["pull_request"]["number"]
 
-    # Fail closed: replace any earlier verdict on this commit before doing anything fallible.
     head = api.get_pr(number)["head_sha"]
+    checkout = _checkout_sha()
+    if checkout and checkout != head:
+        # An old run (e.g. re-run from the Actions tab) for a commit that is no longer the PR
+        # head: touch nothing, so it cannot overwrite the current head's verdict.
+        print(f"Checked-out {checkout[:7]} is not the PR head {head[:7]}; nothing to do.")
+        return
+
+    # Fail closed: replace any earlier verdict on this commit before doing anything fallible.
     api.set_status(head, "pending", "ChangeSignal is checking this commit...")
     try:
-        result = run(api, number, event_name, _checkout_sha())
+        result = run(api, number, event_name, checkout)
     except ModuleMapError:
         raise  # status already set to failure with the reason
     except Exception as e:

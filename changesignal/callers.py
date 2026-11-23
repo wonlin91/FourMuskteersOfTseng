@@ -30,6 +30,16 @@ Known limits (results are "possible" callers, not proof, and some callers are mi
 - Only Python is analysed: callers in other languages, configs, notebooks or templates
   are not found, and files that fail to parse are skipped.
 - Test files (tests/, test_*.py, *_test.py, conftest.py) are not reported as callers.
+- Only the PR head is scanned, so a call added on the base branch after the PR branched off
+  is not seen until the PR is updated from the base branch.
+- Deleting the last statement of a function when blank lines surround the gap may not mark
+  the function as changed.
+- A caller file is attributed to the first module whose path matches it; with overlapping
+  paths (`pkg/` and `pkg/report.py`) the more specific owner may not be suggested.
+- Imports are tracked per file, not per function: two functions importing different `load`s
+  can hide each other.
+Because of these limits, owners of possible callers are asked to review but are NOT required
+to sign off; only owners of touched paths are (see main.reconcile and CP1's human-AI boundary).
 """
 import ast
 import os
@@ -191,14 +201,21 @@ def _calls_to_targets(tree, path, targets):
                 methods.setdefault(symbol.split(".", 1)[1], []).append((target, symbol))
 
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
+        if isinstance(node, ast.Call):
+            callees = [node.func]
+        elif isinstance(node, (*FUNCTION_NODES, ast.ClassDef)):
+            # A bare decorator (`@authorize`, `@auth.authorize`) calls the imported function
+            # without an ast.Call node; `@authorize(...)` is already an ast.Call above.
+            callees = [d for d in node.decorator_list if not isinstance(d, ast.Call)]
+        else:
             continue
-        hit = _resolve(_dotted(node.func), module_aliases, names, targets)
-        if hit:
-            yield hit[0], hit[1], node.lineno
-        elif isinstance(node.func, ast.Attribute):
-            for target, symbol in methods.get(node.func.attr, []):
-                yield target, symbol, node.lineno
+        for callee in callees:
+            hit = _resolve(_dotted(callee), module_aliases, names, targets)
+            if hit:
+                yield hit[0], hit[1], callee.lineno
+            elif isinstance(node, ast.Call) and isinstance(callee, ast.Attribute):
+                for target, symbol in methods.get(callee.attr, []):
+                    yield target, symbol, node.lineno
 
 
 def _imports_of(tree, path, targets):

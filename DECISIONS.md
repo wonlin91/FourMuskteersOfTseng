@@ -77,3 +77,13 @@
 **Why:** We stopped reviewing in rounds here. The remaining issue needs the ownership map to change while PRs are open, which is rare in a four-person team; we record it rather than delay the skeleton.
 
 **Led by:** 李秉倫 (review by Codex; fix drafted with Claude)
+
+## 2026-11-23 — Possible callers are suggested reviewers, not required sign-offs
+
+**What:** Owners of touched paths (rule-based) must approve before merge. Owners of modules that only *call* changed code (found by `ast` caller detection) are requested as reviewers and shown on the card, but do not block the merge.
+
+**Why:** Codex's review of the caller-detection branch found several ways static analysis misses callers (calls added on the base branch, decorators — now fixed —, overlapping module paths, per-file import tracking). If callers' owners were required, every miss would be a silent pass and every false match would block an unrelated owner. This matches CP1's human–AI boundary: "whether a suggested possible caller also needs review — the owner of that module decides; they can dismiss it."
+
+**Alternative rejected:** requiring callers' owners to sign off (makes a heuristic part of the gate).
+
+**Led by:** 李秉倫 (review by Codex)
