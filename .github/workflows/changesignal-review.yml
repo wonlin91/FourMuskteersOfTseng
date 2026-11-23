@@ -1,0 +1,57 @@
+name: ChangeSignal review
+
+# Review events: recompute the gate after an approval, a change request or a dismissal.
+# No API key is used here and the AI card is left as it is (CHANGESIGNAL_WRITE_CARD=0).
+#
+# Known limit: GitHub has no `pull_request_review_target`, so this workflow file is taken from
+# the PR itself; a PR that edits it could change how its own reviews are judged. ChangeSignal's
+# code is checked out from the PR's base commit, and the PR head only into `pr-head/`.
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+# Same group in both ChangeSignal workflows: runs for one PR never overlap, so an older
+# run cannot overwrite a newer owner-ack verdict. Cost: if a PR-event run is still queued
+# when a review arrives, GitHub replaces it with the review run; the status is still
+# recomputed correctly, but the card waits for the next push or description edit.
+concurrency:
+  group: changesignal-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark owner-ack pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: >
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA"
+          -f state=pending -f context=changesignal/owner-ack
+          -f description="ChangeSignal is checking this commit..."
+      - name: Check out ChangeSignal (PR base commit)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - name: Check out the PR head (parsed only, never run)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr-head
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -r requirements.txt
+      - run: python -m changesignal.main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANGESIGNAL_REPO_ROOT: pr-head
+          CHANGESIGNAL_WRITE_CARD: "0"

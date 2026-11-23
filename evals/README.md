@@ -12,7 +12,7 @@ python -m pip install -r requirements.txt pytest
 # Without an API key: canned replies, tests the runner itself (no cost)
 python evals/run_prompt_tests.py --fake
 
-# Real run: needs the AI card PR merged and a key in your shell (never commit it)
+# Real run: needs a key in your shell (never commit it)
 export ANTHROPIC_API_KEY=...          # PowerShell: $env:ANTHROPIC_API_KEY = "..."
 python evals/run_prompt_tests.py
 python evals/run_prompt_tests.py --only 06-prompt-injection   # one case

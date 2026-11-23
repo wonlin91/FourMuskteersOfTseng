@@ -85,12 +85,19 @@ class GitHubAPI:
 
     def list_pr_files(self, number):
         """Every path the PR touches. For renames, both the old and the new path."""
-        paths = []
+        return self.list_pr_changes(number)[0]
+
+    def list_pr_changes(self, number):
+        """(paths, patches): paths as in list_pr_files; patches maps each current path to its
+        unified-diff patch (None when GitHub omits it, e.g. binary or very large files)."""
+        paths, patches = [], {}
         for f in self._get_all(f"/pulls/{number}/files"):
             paths.append(f["filename"])
             if f.get("previous_filename"):
                 paths.append(f["previous_filename"])
-        return paths
+            if f.get("status") != "removed":
+                patches[f["filename"]] = f.get("patch")
+        return paths, patches
 
     def list_reviews(self, number):
         return self._get_all(f"/pulls/{number}/reviews")
