@@ -1,0 +1,40 @@
+# Module map: who owns which files.
+# Each path is one of:
+#   "dir/"            everything under that folder
+#   "dir/file.py"     exactly that file
+#   a glob pattern:   "*"  any characters except "/"        "dir/*.py"  .py files directly in dir/
+#                     "?"  one character except "/"         "dir/?.py"  a.py but not ab.py
+#                     "**" any number of folders (or none)  "**/README.md"  README.md at any depth
+#                                                           "dir/**/*.py"  .py files at any depth under dir/
+# owner = GitHub username. The owner must be a collaborator, or the reviewer request will fail.
+modules:
+  - name: pipeline
+    owner: LiLOUIS0803
+    paths:
+      - ".github/workflows/"
+      - "changesignal/main.py"
+      - "changesignal/github_api.py"
+      - "requirements.txt"
+    interfaces: ["reconcile", "upsert_comment", "request_reviewers", "set_status"]
+
+  - name: detect
+    owner: wonlin91
+    paths:
+      - ".changesignal/"
+      - "changesignal/modules.py"
+      - "changesignal/callers.py"
+    interfaces: ["load_modules", "find_affected", "find_callers"]
+
+  - name: card
+    owner: yixiang0706
+    paths:
+      - "changesignal/card.py"
+      - "changesignal/prompts/"
+    interfaces: ["build_card"]
+
+  - name: practice-and-tests
+    owner: FatFang
+    paths:
+      - "practice/"
+      - "tests/"
+    interfaces: []
