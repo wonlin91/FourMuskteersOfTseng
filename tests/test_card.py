@@ -111,9 +111,13 @@ def test_ai_text_is_rendered_as_one_plain_line():
     assert any(l.startswith("| preprocess | @bob") for l in lines)  # owner table still intact
 
 
-def test_without_ai_a_nonempty_reason_is_unverified_not_confirmed():
-    md = build_card(dict(PR, body="## What this PR does\n[One sentence]"), AFFECTED)["markdown"]
-    assert "Not checked" in md and "Given in the PR description" not in md
+def test_without_ai_template_only_reason_is_missing():
+    result = build_card(
+        dict(PR, body="## What this PR does\n[One sentence]"),
+        AFFECTED,
+    )
+    assert result["reason_missing"] is True
+    assert "No reason given" in result["markdown"]
 
 
 def test_unexpected_json_shape_falls_back():
