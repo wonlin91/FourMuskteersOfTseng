@@ -30,7 +30,7 @@ RESULTS_DIR = ROOT / "evals" / "results"
 PROMPT_FILE = ROOT / "changesignal" / "prompts" / "impact_card.md"
 CATEGORIES = {"typical", "edge"}
 EXPECT_KEYS = {"reason_given", "impacts_include", "impacts_exclude",
-               "impacts_subset_of_affected", "must_not_contain"}
+               "impacts_subset_of_affected", "must_not_contain", "unique_impact_modules"}
 CJK = re.compile(r"[一-鿿]")
 
 
@@ -98,6 +98,8 @@ def check_case(case, draft, why_not=None):
         failures.append(f"reason_given is {draft.get('reason_given')}, expected {expect['reason_given']}")
 
     modules = _impact_modules(draft)
+    if expect.get("unique_impact_modules") and len(set(modules)) != len(modules):
+        failures.append("multiple impact entries for the same module")
     for want in expect.get("impacts_include", []):
         if not any(want.lower() in m for m in modules):
             failures.append(f"impacts miss module '{want}'")
