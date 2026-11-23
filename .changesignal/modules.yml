@@ -1,0 +1,34 @@
+# Module map: who owns which files.
+# A path ending in "/" matches everything under that folder; otherwise it must match the file exactly.
+# owner = GitHub username. The owner must be a collaborator, or the reviewer request will fail.
+modules:
+  - name: pipeline
+    owner: LiLOUIS0803
+    paths:
+      - ".github/workflows/"
+      - "changesignal/main.py"
+      - "changesignal/github_api.py"
+      - "requirements.txt"
+    interfaces: ["reconcile", "upsert_comment", "request_reviewers", "set_status"]
+
+  - name: detect
+    owner: wonlin91
+    paths:
+      - ".changesignal/"
+      - "changesignal/modules.py"
+      - "changesignal/callers.py"
+    interfaces: ["load_modules", "find_affected", "find_callers"]
+
+  - name: card
+    owner: yixiang0706
+    paths:
+      - "changesignal/card.py"
+      - "changesignal/prompts/"
+    interfaces: ["build_card"]
+
+  - name: practice-and-tests
+    owner: FatFang
+    paths:
+      - "practice/"
+      - "tests/"
+    interfaces: []
