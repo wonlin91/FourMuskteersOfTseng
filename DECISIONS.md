@@ -214,6 +214,22 @@
 
 **Led by:** FatFang. **Issue:** #14.
 
+## 2026-11-24 — Code steward handoff: yixiang0706 → LiLOUIS0803
+
+**What:** [LiLOUIS0803](https://github.com/LiLOUIS0803) takes over as code steward from yixiang0706, who received the role from FatFang earlier on November 24 in #24.
+
+**Why:** The rotation gives every member a turn as code steward before CP2.
+
+**Handoff notes:** As wonlin91 recorded above, #8 reached `main` through #4, #9 reached `main` through #18, and #15 merged. Since then, #19 and #20 have also merged. #22 settled how the AI card receives its API key through the `LLM_API_KEY` environment. The current `main` ruleset requires one PR approval and the `changesignal/owner-ack` status check, and blocks force pushes.
+
+**Open items for the new steward:**
+
+- Review #26, the prompt correction and live evaluation for #13.
+- Open an issue for the unowned root files (`README.md`, `DECISIONS.md`, `pyproject.toml`, and `.gitignore`). Edits to these files currently request no module owner.
+- Record the merge-day fresh-clone test by following only the README and running the main task.
+
+**Led by:** yixiang0706 (handoff), [LiLOUIS0803](https://github.com/LiLOUIS0803) (steward).
+
 ## 2026-11-24 — Combine risks that affect one module
 
 **What:** Ask the impact-card writer to group risks and supporting evidence by module before writing.
