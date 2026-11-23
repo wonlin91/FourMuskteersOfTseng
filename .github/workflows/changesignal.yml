@@ -32,7 +32,11 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA"
           -f state=pending -f context=changesignal/owner-ack
           -f description="ChangeSignal is checking this commit..."
+      # Check out the PR head (not the merge commit), so the line numbers in the PR patch
+      # match the files that caller detection parses.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
