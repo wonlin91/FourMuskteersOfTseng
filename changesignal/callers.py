@@ -58,6 +58,8 @@ def is_test_file(path):
     name = parts[-1]
     return (bool(TEST_DIRS.intersection(parts[:-1])) or name.startswith("test_")
             or name.endswith("_test.py") or name == "conftest.py")
+
+
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 _HUNK_HEADER = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 
