@@ -213,3 +213,13 @@
 **Alternatives considered:** decision = first approval only (not chosen as the main number: a request for changes is the owner deciding; still reported); owners = the module owners of the changed files from `modules.yml` (not chosen: needs the map at that commit, while the review requests are what the owner actually saw); counting `COMMENTED` as a decision (not chosen: a comment can be a question, not a verdict).
 
 **Led by:** FatFang. **Issue:** #14.
+
+## 2026-11-24 — Combine risks that affect one module
+
+**What:** Ask the impact-card writer to group risks and supporting evidence by module before writing.
+
+**Why:** In the live fallback-PIN case, Claude described lockout and plaintext exposure in separate console entries. The existing instruction specified one entry per module but did not explain how to handle multiple risks. After the change, one entry retained both observations. The full live suite improved from 12/13 to 13/13.
+
+**Alternative considered:** Keeping only the first entry per module in the renderer would drop the second risk and its evidence.
+
+**Led by:** yixiang0706 (with Codex assistance). **Issue:** #13.
