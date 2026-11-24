@@ -32,7 +32,7 @@ The **code steward** has the final say on whether AI-generated code is good enou
 ## Evidence behind these rules
 
 - **Slide-4 numbers** for the 16 PRs opened since 2026-11-10 and merged: mostly AI-generated 13/16 (the other 3 do not say); explainable by someone else 13/16 (approval by a non-author with a written comment of 80+ characters); saying what the AI did 11/16. The 5 that did not: #4 (footer only), #10, #19 and #20 (template left empty), #24. → **R1**
-- **Week 12 review, A4:** Group 22 found that merged #26 left "I read every line" and "tests pass" unticked although the description reported the test results. → **R1** (tick what is true, explain what is not)
+- **Week 12 review, A4:** Group 21 found that merged #26 left "I read every line" and "tests pass" unticked although the description reported the test results. → **R1** (tick what is true, explain what is not)
 - **#22:** after two Codex reviews, 陳苡翔's human review found that the two workflows could overwrite a newer `owner-ack` verdict with an older one, which would let a PR merge without the owner's approval. → **R5 and R6** (AI review first, but never instead of a person)
 - **#4:** three Codex rounds found ways the gate could turn green without the owner, which the passing tests missed. → **R5**
 - **Week 12 review, finding 1 (issue #28):** following our README to install ChangeSignal elsewhere misses the review workflow and the key environment, so approvals never turn the status green. → **R7**
