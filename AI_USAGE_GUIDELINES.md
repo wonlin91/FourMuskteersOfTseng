@@ -35,6 +35,6 @@ The **code steward** has the final say on whether AI-generated code is good enou
 - **Week 12 review, A4:** Group 21 found that merged #26 left "I read every line" and "tests pass" unticked although the description reported the test results. → **R1** (tick what is true, explain what is not)
 - **#22:** after two Codex reviews, 陳苡翔's human review found that the two workflows could overwrite a newer `owner-ack` verdict with an older one, which would let a PR merge without the owner's approval. → **R5 and R6** (AI review first, but never instead of a person)
 - **#4:** three Codex rounds found ways the gate could turn green without the owner, which the passing tests missed. → **R5**
-- **Week 12 review, finding 1 (issue #28):** following our README to install ChangeSignal elsewhere misses the review workflow and the key environment, so approvals never turn the status green. → **R7**
+- **Week 12 review, finding 1 (issue #28):** our README's install list omits `changesignal-review.yml`, so an owner's approval would not recompute `owner-ack`; checking it, we also found the README does not explain the `LLM_API_KEY` environment. → **R7**
 - **#7:** opened by an AI-assisted workflow before review, on top of an unmerged PR; it requested three teammates' reviews and had to be closed. → **R8**
 - **2026-11-23:** the key had been stored as a plain environment *variable*, so the workflow could not read it as a secret and teammates could see it. → **R9**
