@@ -86,7 +86,14 @@ def reconcile(api, pr, changed_files, event_name, modules, patches=None, write_c
                   and m.lower() not in approved]
     failed = api.request_reviewers(number, to_request) if to_request else []
 
-    if not owners:
+    if not owners and suggested:
+        # Callers' owners are only suggested, so nothing blocks; but saying "no module is
+        # affected" would contradict the review request they just received (#30).
+        n = len(suggested)
+        state, desc = "success", (f"No sign-off required; asked {n} possible downstream "
+                                  f"owner{'s' if n > 1 else ''} to look: "
+                                  + ", ".join("@" + s for s in sorted(suggested.values())))
+    elif not owners:
         state, desc = "success", "No other member's module is affected."
     elif missing:
         state, desc = "pending", "Waiting for sign-off: " + ", ".join("@" + m for m in missing)
