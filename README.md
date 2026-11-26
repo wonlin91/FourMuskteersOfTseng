@@ -32,7 +32,7 @@ You need **two GitHub accounts**: an *author* who changes code and an *owner* wh
    - `.github/workflows/changesignal-review.yml` (review events: recomputes the gate after an approval)
    - `.changesignal/modules.yml`
 
-   You need **both** workflow files. Without `changesignal-review.yml`, an owner's approval never updates the status and `changesignal/owner-ack` stays *pending* forever.
+   You need **both** workflow files. Without `changesignal-review.yml`, nothing recomputes the status when the owner approves, so `changesignal/owner-ack` stays *pending* until some later PR event (for example the next push).
 3. **Edit `.changesignal/modules.yml`.** Replace our owners with your two usernames and our paths with paths that exist in your repository. Two modules with different owners are enough; the syntax (folders, files, `*` / `**` patterns) is explained in the comment at the top of the file. Example:
 
    ```yaml
@@ -47,11 +47,11 @@ You need **two GitHub accounts**: an *author* who changes code and an *owner* wh
 
    Add one small file under each folder (for example `backend/app.py` and `frontend/app.py`) so there is something to change. A malformed map makes the status fail with a short message that names the module and the field.
 4. **Commit and push directly to `main`.** The workflows run from the default branch (`pull_request_target`), so a PR that only adds them does not trigger them.
-5. **(Optional) Turn on the AI summary.** In *Settings → Environments*, use an environment named `LLM_API_KEY` (the workflow references it, so GitHub creates it on the first run if it is missing) and add a secret named `LLM_API_KEY` containing an Anthropic API key. Never put a key in the repository, a PR or the README. Without a key the card is still posted: it says that the AI summary is unavailable and lists the affected modules from the rules, which is complete. Optional repository variable `CHANGESIGNAL_LANG` = `zh-TW` writes the card in Traditional Chinese.
+5. **(Optional) Turn on the AI summary.** In *Settings → Environments*, create an environment named `LLM_API_KEY` (the workflow references it by that name), set *Deployment branches* to the default branch only (`main`), and add an environment **secret** (not a variable) named `LLM_API_KEY` containing an Anthropic API key. Limiting it to `main` means only the workflow from your default branch can read the key. Never put a key in the repository, a PR or the README. Without a key the card is still posted: it says that the AI summary is unavailable and lists the affected modules from the rules, which is complete. Optional repository variable `CHANGESIGNAL_LANG` = `zh-TW` writes the card in Traditional Chinese.
 6. **Author:** create a branch in the same repository (forks are not supported), change `frontend/app.py` (the other account's module) and open a PR to `main`.
 7. **Within about a minute** you should see: an *impact card* comment from `github-actions[bot]`, the owner requested as reviewer, and the status `changesignal/owner-ack` *pending* ("Waiting for sign-off: @account-b").
-8. **Owner:** open the PR, choose *Review changes → Approve*. The `ChangeSignal review` run finishes and the status turns *success*. Pushing another commit sets it back to *pending* until the owner approves that commit.
-9. **(Optional)** In branch protection for `main`, require the status check `changesignal/owner-ack`, so a pending status blocks the merge button.
+8. **Owner:** open the PR, choose *Review changes → Approve*. The `ChangeSignal review` run finishes and the status turns *success*. **Acceptance check:** on the PR's *Commits* tab, the same commit that was *pending* in step 7 now shows `changesignal/owner-ack` as *success*. If it does, the installation works. Pushing another commit sets it back to *pending* until the owner approves that commit.
+9. **(Optional)** Only after step 8 has worked once: in branch protection (or a ruleset) for `main`, require the status check `changesignal/owner-ack`, so a pending status blocks the merge button. If you require it before the workflows are on `main`, no run ever reports the status and every PR is blocked.
 
 **If something does not work**
 
@@ -62,7 +62,7 @@ You need **two GitHub accounts**: an *author* who changes code and an *owner* wh
 | Status says "Cannot request @name (collaborator?)" | That owner is not a collaborator, or the username in `modules.yml` has a typo |
 | Status says "Invalid .changesignal/modules.yml: ..." | Read the message; it names the module and the field to fix |
 | Nothing happens for a PR from a fork | Fork PRs are skipped on purpose |
-| Card says "AI summary unavailable" | No `LLM_API_KEY` secret (expected) or the API call failed; the owner list is still correct |
+| Card says "AI summary unavailable" | No `LLM_API_KEY` secret (expected), the key was saved as a variable instead of a secret, the environment is not allowed on `main`, or the API call failed; the owner list is still correct |
 
 ### Develop
 
