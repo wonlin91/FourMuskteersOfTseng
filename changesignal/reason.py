@@ -2,10 +2,10 @@
 import re
 
 
-def has_reason(body: str | None) -> bool:
-    """Check whether a PR description contains a meaningful reason."""
+def description_content(body: str | None) -> str:
+    """Return text from the rationale field after removing PR template boilerplate."""
     if not body or not body.strip():
-        return False
+        return ""
 
     # 1. Remove HTML comments.
     text = re.sub(r"<!--.*?-->", "", body, flags=re.DOTALL)
@@ -62,6 +62,9 @@ def has_reason(body: str | None) -> bool:
 
         meaningful_lines.append(line)
 
-    # 6. Require at least 10 non-whitespace characters.
-    content = re.sub(r"\s", "", " ".join(meaningful_lines))
-    return len(content) >= 10
+    return "\n".join(meaningful_lines).strip()
+
+
+def has_reason(body: str | None) -> bool:
+    """Apply the original ten-character heuristic to the rationale field."""
+    return len(re.sub(r"\s", "", description_content(body))) >= 10
