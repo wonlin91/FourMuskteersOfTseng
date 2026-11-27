@@ -239,3 +239,15 @@
 **Alternative considered:** Keeping only the first entry per module in the renderer would drop the second risk and its evidence.
 
 **Led by:** yixiang0706 (with Codex assistance). **Issue:** #13.
+
+## 2026-11-27 — Give every file an owner: root files and `docs/` go to pipeline
+
+**What:** `.changesignal/modules.yml` now lists, under the pipeline module (李秉倫), the files that were in no module: `README.md`, `DECISIONS.md`, `AI_USAGE_GUIDELINES.md`, `CONTRIBUTORS.md`, `pyproject.toml`, `.gitignore`, `.github/pull_request_template.md`, `changesignal/__init__.py`, and the `docs/` folder (CP2 artifacts such as `docs/merge_day.md` will live there). A new test fails if any file from `git ls-files` matches no module, and another checks that a PR by someone else editing these files asks the pipeline owner.
+
+**Why:** The last three steward handoffs listed "unowned files ask no owner" as an open item. A file in no module is the failure ChangeSignal exists to prevent: a change goes through and nobody is asked. We chose the pipeline owner for all of them because he maintains the repository settings, the PR template and this log (see Team Charter in CP1), and these files are repository configuration or process documents rather than code of another module.
+
+**Alternatives considered:** spreading the documents over the four owners by topic (not chosen: arbitrary, and a PR that adds a decision entry would ask someone with no stake in it); leaving documents unowned and relying on the one required approval (not chosen: that is the silent gap); a "shared, no owner needed" marker in `modules.yml` (not chosen for now: it needs new code in `parse_modules` and `find_affected`, and we are in feature freeze).
+
+**Known limits:** A PR that edits `DECISIONS.md` or `README.md` now blocks on one person's sign-off, so every decision entry waits for 李秉倫; if that slows the team, revisit with the shared-marker option. The new test also fails when someone adds a file in a new folder before the map covers it, which is intended: add the path to the map in the same PR. Overlapping paths are still not detected.
+
+**Led by:** wonlin91 (detect module; drafted with Claude Code).
