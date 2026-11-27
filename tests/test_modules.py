@@ -1,3 +1,7 @@
+import os
+import subprocess
+from pathlib import Path
+
 import pytest
 
 from changesignal.modules import ModuleMapError, _matches, find_affected, load_modules, parse_modules
@@ -55,6 +59,41 @@ def test_glob_in_find_affected():
 
 def test_repo_modules_yml_still_loads():
     assert load_modules(".changesignal/modules.yml")
+
+
+# ---- every file has an owner (a file in no module silently asks nobody) ----
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_MAP = REPO_ROOT / ".changesignal" / "modules.yml"
+
+
+def _tracked_files():
+    try:
+        out = subprocess.check_output(["git", "-C", str(REPO_ROOT), "ls-files"],
+                                      text=True, stderr=subprocess.DEVNULL)
+    except (OSError, subprocess.CalledProcessError):
+        if os.environ.get("CI"):
+            raise  # in CI a broken listing must fail, not skip
+        pytest.skip("not a git checkout")
+    return [f for f in out.splitlines() if f]
+
+
+def test_every_tracked_file_has_an_owner():
+    modules = load_modules(REPO_MAP)
+    unowned = [f for f in _tracked_files()
+               if not any(_matches(f, p) for m in modules for p in m["paths"])]
+    assert not unowned, f"no module owns {unowned}: add them to .changesignal/modules.yml"
+
+
+@pytest.mark.parametrize("path", [
+    "README.md", "DECISIONS.md", "AI_USAGE_GUIDELINES.md", "CONTRIBUTORS.md",
+    "pyproject.toml", ".gitignore", ".github/pull_request_template.md",
+    "changesignal/__init__.py", "docs/merge_day.md",
+])
+def test_root_and_doc_files_ask_the_pipeline_owner(path):
+    """A PR by anyone else that edits these files must request the pipeline owner."""
+    result = find_affected([path], load_modules(REPO_MAP), "someone-else")
+    assert [a["module"] for a in result] == ["pipeline"]
 
 
 # ---- parse_modules validation (issue #6) ----

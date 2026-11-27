@@ -14,7 +14,16 @@ modules:
       - ".github/workflows/"
       - "changesignal/main.py"
       - "changesignal/github_api.py"
+      - "changesignal/__init__.py"
       - "requirements.txt"
+      - "pyproject.toml"
+      - ".gitignore"
+      - ".github/pull_request_template.md"
+      - "README.md"
+      - "DECISIONS.md"
+      - "AI_USAGE_GUIDELINES.md"
+      - "CONTRIBUTORS.md"
+      - "docs/"
     interfaces: ["reconcile", "upsert_comment", "request_reviewers", "set_status"]
 
   - name: detect
