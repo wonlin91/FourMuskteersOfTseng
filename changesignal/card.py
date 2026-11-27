@@ -9,17 +9,14 @@ import json
 import os
 from pathlib import Path
 
+from .reason import description_content
+
 MODEL = "claude-opus-5-5"
 PROMPT = (Path(__file__).parent / "prompts" / "impact_card.md").read_text(encoding="utf-8")
 MAX_DIFF_CHARS = 150_000  # beyond this we send the start of the diff and say so on the card
 MAX_ROWS = 25             # module table rows shown on the card; the rest are counted
 MAX_FIELD_CHARS = 600     # per AI-written text field
 MAX_CARD_CHARS = 60_000   # GitHub rejects comments over 65,536 characters
-
-try:  # rule-based reason check from issue #11 (changesignal/reason.py), used once it exists
-    from .reason import has_reason
-except ImportError:
-    has_reason = None
 
 CARD_SCHEMA = {
     "type": "object",
@@ -54,7 +51,7 @@ LABELS = {
         "reason": "Author's reason",
         "reason_ok": "Given in the PR description.",
         "reason_missing": ":warning: No reason given. Please explain in the PR description why this change is needed.",
-        "reason_unverified": "Not checked: the AI summary is unavailable, so we could not tell whether the description gives a reason.",
+        "reason_unverified": "The description has text; please check that it explains this change.",
         "more_rows": "…and {n} more (see the workflow run log).",
         "cut": "_The card was too long and has been cut._",
         "modules": "Modules that may be affected",
@@ -77,7 +74,7 @@ LABELS = {
         "reason": "作者的理由",
         "reason_ok": "已寫在 PR 說明中。",
         "reason_missing": ":warning: 作者沒有說明為什麼需要這個修改，請在 PR 說明中補上。",
-        "reason_unverified": "未檢查：AI 摘要無法產生，無法判斷 PR 說明是否寫了理由。",
+        "reason_unverified": "PR 說明中有文字，請確認是否說明了這次修改的原因。",
         "more_rows": "…另有 {n} 筆（請看 workflow 執行紀錄）。",
         "cut": "_影響卡太長，已截斷。_",
         "modules": "可能受影響的模組",
@@ -198,10 +195,8 @@ def build_card(pr, affected, client=None):
     body = pr.get("body") or ""
     if draft is not None:
         reason = "given" if draft["reason_given"] else "missing"
-    elif has_reason is not None:
-        reason = "given" if has_reason(body) else "missing"
-    else:  # without the AI we only know that an empty description gives no reason
-        reason = "missing" if not body.strip() else "unverified"
+    else:
+        reason = "unverified" if description_content(body) else "missing"
     reason_missing = reason == "missing"
 
     lines = [f"### {L['title']}", "", f"**{L['what']}** _({L['ai']})_"]

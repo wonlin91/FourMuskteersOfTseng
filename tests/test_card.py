@@ -1,5 +1,6 @@
 """Impact card tests with a fake Claude client (no network, no cost)."""
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import anthropic
@@ -118,6 +119,21 @@ def test_without_ai_template_only_reason_is_missing():
     )
     assert result["reason_missing"] is True
     assert "No reason given" in result["markdown"]
+
+
+def test_offline_card_for_unrelated_description():
+    path = Path(__file__).resolve().parents[1] / "evals/prompt_cases/12-unrelated-description.json"
+    case = json.loads(path.read_text(encoding="utf-8"))
+    result = build_card(case["pr"], case["affected"])
+    assert result["reason_missing"] is False
+    assert "**Author's reason**\nThe description has text; please check that it explains this change." in result["markdown"]
+
+
+def test_offline_card_with_short_chinese_description(monkeypatch):
+    monkeypatch.setenv("CHANGESIGNAL_LANG", "zh-TW")
+    result = build_card(dict(PR, body="修正錯字"), AFFECTED)
+    assert result["reason_missing"] is False
+    assert "PR 說明中有文字，請確認是否說明了這次修改的原因。" in result["markdown"]
 
 
 def test_unexpected_json_shape_falls_back():
