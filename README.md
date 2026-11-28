@@ -9,7 +9,7 @@ A GitHub Action for small module-based teams. When a pull request changes code o
 2. posts an **impact card** on the PR (what changed, who may be affected, the author's reason);
 3. requests the affected owners as reviewers and keeps the `changesignal/owner-ack` status **pending** until every affected owner approves the current commit.
 
-> Status: walking skeleton. Owner detection and the GitHub flow work; caller detection and the AI-written card text are still stubs.
+> Status: CP2 prototype. Owner detection, the merge gate, caller detection (possible callers are suggested reviewers) and the AI-written card text (optional, needs an API key) work. Design rationale, evaluation report and merge-day record: [`docs/`](docs/).
 
 ### Try it (two people)
 
