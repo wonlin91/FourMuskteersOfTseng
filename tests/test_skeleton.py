@@ -263,6 +263,26 @@ def test_caller_owner_is_asked_but_does_not_block(monkeypatch):
     assert api.requested == [["Carol"]]          # but Carol is still asked to look
 
 
+def test_callers_only_status_says_who_was_asked(monkeypatch):
+    # #30: Alice changes her own module; only Carol's code calls it.
+    import changesignal.main as main_mod
+    monkeypatch.setattr(main_mod, "find_callers", lambda *a: [
+        {"module": "practice", "owner": "Carol", "kind": "possible_caller", "location": "practice/x.py:3"}])
+    api = FakeAPI()
+    result = reconcile(api, pr(), ["app/main.py"], "pull_request", MODULES)
+    assert result["state"] == "success"                  # a caller's owner never blocks
+    assert api.requested == [["Carol"]]
+    desc = api.statuses[-1][2]
+    assert desc == "No sign-off required; asked 1 possible downstream owner to look: @Carol"
+    assert "No other member's module is affected" not in desc
+
+
+def test_no_owner_and_no_caller_keeps_old_text():
+    api = FakeAPI()
+    reconcile(api, pr(), ["README.md"], "pull_request", MODULES)
+    assert api.statuses[-1][1:] == ("success", "No other member's module is affected.")
+
+
 def test_pull_request_target_event_refreshes_card_and_review_run_does_not():
     api = FakeAPI(card_head=HEAD)
     reconcile(api, pr(), ["app/card.py"], "pull_request_target", MODULES)
