@@ -10,7 +10,11 @@ We report only what we observed. Internal checks by team members are labelled **
 
 **CP1 method:** structured observation and a 5-minute interview with pairs from outside the team. Each pair does a baseline task (plain PRs and LINE) and a ChangeSignal task, in counterbalanced order, with one seeded silent break per task. **CP1 minimum:** at least 6 pairs (12 people outside the team).
 
-**Where we are:** 1 session with people outside the team (the Week 12 cross-team review by Group 21, run by the reviewers themselves). The observed owner sessions and the baseline condition have **not** been run yet. Section 4 lists what this leaves untested.
+**Where we are:** 2 sessions with people outside the team:
+- the Week 12 cross-team review by Group 21, run by the reviewers themselves (E2);
+- one observed owner review by P2 (E7).
+
+The baseline condition has **not** been run, and both sessions fall well short of the 6 pairs planned in CP1. Section 4 lists what this leaves untested.
 
 ## 2. Evidence
 
@@ -21,6 +25,7 @@ We report only what we observed. Internal checks by team members are labelled **
 | E3 | Prompt test suite, 13 cases, live model | yixiang0706, FatFang | 2026-11-24 | No (automated) | `evals/results/20261124-*.md`; PR #26 |
 | E4 | Internal controlled trial: reason vs. empty description | team role-play, one account | 2026-11-29 | No | demo PRs #4, #5; `user-testing/20261129-changesignal-roleplay.md` |
 | E6 | Internal follow-up after requiring `owner-ack`: the broken fix vs. a corrected fix | team, one account (`LiLOUIS0803`) | 2026-11-29 | No (the operator knew the seeded break) | demo PRs #6, #7; `user-testing/20261129-changesignal-participant-record.md` |
+| E7 | Owner review of the seeded break by an outside participant (P2) | P2 (outside the team); facilitator 李秉倫 | 2026-11-29 | **Yes, Session 2** (observed; limits below) | demo PRs #9, #10; facilitator's notes |
 | E5 | Merge-day fresh clone of `main` | run by Claude Code for 李秉倫 | 2026-11-29 | No | `docs/merge_day.md` |
 
 ### E1 — Internal rehearsal (demo PR #1)
@@ -94,6 +99,24 @@ This is the required fail → fix → rerun cycle. It is one run per prompt vers
 
 **Gate:** with `changesignal/owner-ack` now required, the trial log records GitHub showing both PRs as `blocked` while waiting for the owner. The required check itself was verified through the branch-protection API.
 
+### E7 — Session 2: owner review by P2 (2026-11-29)
+
+**Participant and setup:**
+- P2 is outside the team, a CS master's student (year 1). P2 was not told about the seeded break.
+- Demo PR #9 made `wonlin91` the owner of `preprocess` and `scoring`.
+- The facilitator opened demo PR #10 (the `crop_regions` change, with a one-line reason) from `LiLOUIS0803`.
+- P2 reviewed on that account as the owner and wrote the decision as a PR comment, since the author account cannot review its own PR.
+
+**What happened:**
+- The card appeared 27 s after the PR opened. It listed `preprocess` and `scoring`, named `zip(boxes, scores)` at `pipeline/scoring.py:18`, and warned about the all-filtered `ValueError`.
+- 6 min 41 s after the card, P2 commented "request changes". P2 stated that cup's score had gone to book, that an all-filtered input raises `ValueError`, and asked for one shared filtered list and two regression tests.
+
+**From the facilitator's notes (close to verbatim):**
+- Card usefulness: 4/5. P2 said the card's pointer to `zip(boxes, scores)` showed where to look, and that a tiny example (two boxes, one score) would have made it faster.
+- Willingness: P2 would try it on a shared lab pipeline, but would read it less if it often flagged unrelated files.
+
+**Not recorded:** whether P2 ran `run.py`; interview questions 1, 2, 4 and 6; the reaction at the reveal.
+
 ### E5 — Merge day
 - Fresh clone of `main` at `24d22e4`, following only README "Develop": 213 tests passed (Python 3.14.4).
 - `main`'s ruleset requires 1 approval and the `changesignal/owner-ack` status.
@@ -108,25 +131,26 @@ This is the required fail → fix → rerun cycle. It is one run per prompt vers
 | #5 (E4) | 34 s | — | — | pending |
 | #6 (E6) | 34 s | — | — | pending |
 | #7 (E6) | 36 s | — | — | pending |
+| #10 (E7) | 27 s | 6 m 41 s after the card (decision as a comment) | — | pending (closed unmerged) |
 
-Median time from PR opened to card: 34 s (n = 5). These include the Actions runner start-up; LLM time alone is not recorded.
+Median time from PR opened to card: 34 s (n = 6). These include the Actions runner start-up; LLM time alone is not recorded.
 
 ## 3. Metrics against CP1 thresholds
 
 | Metric (CP1) | Threshold (CP1) | Evidence | Status |
 |---|---|---|---|
-| Owner awareness before merge | Owners review ≥ 90% of cross-module changes before merge | E1: 1/1, but the owner was a team member who knew the break | Not tested with users |
-| Escaped breaks | Seeded break caught before merge in ≥ 5 of 6 pairs, clearly more than baseline | E1: not merged, changes requested. E4: no owner decision. Tests stayed green in both, so tests alone would not catch it. No baseline. | Not tested with users |
+| Owner awareness before merge | Owners review ≥ 90% of cross-module changes before merge | E7: P2 knew before deciding that scores were paired with the wrong boxes (1/1). E1: 1/1, but the owner was a team member who knew the break. | 1 user session; far below the planned sample |
+| Escaped breaks | Seeded break caught before merge in ≥ 5 of 6 pairs, clearly more than baseline | E7: caught (1 of 1), changes requested. E1: changes requested. E4: no owner decision. Tests stayed green in all of them, so tests alone would not catch it. No baseline. | 1 of the 6 planned pairs; no baseline |
 | Time to diagnose | Minutes from failing integration to finding the change | Not measured | Not tested |
-| Card quality | ≥ 70% of cards rated 4–5; < 1 in 5 cards lists a wrong module | No ratings. Wrong modules: 0 of 5 demo cards listed a module that was not touched. In E6 the card for the corrected fix raised a different, relevant risk (small targets dropped). Prompt suite: 13/13 after one fix (E3). | Not tested with users |
-| Overhead per PR | Median < 5 min per PR | Machine time only: median 34 s to card (n = 5). Human minutes not measured. | Not tested with users |
+| Card quality | ≥ 70% of cards rated 4–5; < 1 in 5 cards lists a wrong module | E7: rated 4/5 (n = 1). Wrong modules: 0 of 6 demo cards listed a module that was not touched. In E6 the card for the corrected fix raised a different, relevant risk (small targets dropped). Prompt suite: 13/13 after one fix (E3). | n = 1 rating |
+| Overhead per PR | Median < 5 min per PR | Machine time: median 34 s to card (n = 6). Human time: E7 owner decision 6 min 41 s after the card (n = 1); perceived overhead was not asked. | Not enough data |
 | Author wrote a reason | (CP1 interview metric) | E4: the card told the two cases apart (reason / no reason). E2 showed that, without the AI, unrelated text passed as a reason; fixed in #32. | Internal only |
 
 ## 4. What we have not tested yet
 
-- **Observed sessions with people outside the team:** we planned at least 6 pairs in CP1. We have 1 self-run peer review and 0 observed sessions. Session 2 is planned with the `user-testing/` kit (task cards 02 and 03, observation sheet 04, interview 05, findings template 06). It runs on the demo repository with `owner-ack` now required, and the owner submits a real review.
+- **Enough observed sessions with people outside the team:** we planned at least 6 pairs in CP1, and have 1 self-run peer review (E2) and 1 observed owner review (E7). In E7 the author was a team member, the owner used a team account, and the decision was a comment rather than a formal review.
 - **The baseline condition** (plain PR and LINE): no comparison exists.
-- **Card ratings and interview metrics** (willingness to adopt, perceived overhead).
+- **Card ratings and interview metrics beyond one person:** one rating (4/5), one willingness answer, and no perceived-overhead answer.
 - **More than one scenario:** only the `crop_regions` image-pipeline case; no front-end or API case like interviewee A's.
 - **Use over time:** multiple owners, many PRs over time (noise, fatigue), and an owner who replies the next day.
 - **Installation by a team that is not ours:** Group 21 ran our repo locally. Nobody outside the team has followed the new README into their own repository yet.
@@ -136,6 +160,12 @@ Median time from PR opened to card: 34 s (n = 5). These include the Actions runn
 
 - **Internal checks are not user tests.** In E1 and E4 the participants designed the seeded break.
 - **Session 1 was self-run by the reviewers.** We did not observe it, and its goal was a review, not the CP1 task.
+- **Session 2 had several weak points:**
+  - one participant;
+  - the facilitator was also the author;
+  - the participant used a team account;
+  - the notes are close to verbatim, not a recording;
+  - the card pointed straight at the faulty line, so finding the break was assisted by the tool under test. This is what the tool is for, but it says nothing about a card that misses the line.
 - **One run per condition.** LLM output varies between runs; a correct card is not a quality rate.
 - **Role setup affects the card.** In E4 the author owned `scoring`, so the card left it off; E1 and E4 are not directly comparable.
 - **Tiny seeded demo.** The task is role-played on a small repository with no real deadline or stakes.

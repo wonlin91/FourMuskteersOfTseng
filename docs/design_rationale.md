@@ -164,11 +164,52 @@ Only sessions with people outside the team count as user tests. Internal runs ar
 - #7 moved the filter to the candidate stage: locally `cup` was selected again. The card then raised a different, relevant risk: the 32-pixel threshold can silently drop a real small target.
 - This is not a user test and is not counted as one.
 
-### 3.3 Session 2 — scheduled, not yet run
+### 3.3 Session 2 — owner review by an outside participant (P2), 2026-11-29
 
-> **Placeholder.** Not completed as of 2026-11-29.
->
-> **Plan:** people outside the team, using the `user-testing/` kit (task cards `02` and `03`, observation sheet `04`, interview `05`, findings template `06`), on the demo repository with `changesignal/owner-ack` required. The author edits `pipeline/preprocess.py` from the `candidates` owner's account, and the owner (`preprocess` + `scoring`) submits a real review on GitHub. Only data observed in that session will be added here.
+**Participant:**
+- P2: outside the team, CS master's student (year 1).
+- GitHub familiarity and the consent wording were not recorded in the notes.
+
+**Setup:** demo repository, ChangeSignal at `6e2c1a0`, `changesignal/owner-ack` required.
+- Demo PR #9 first set `preprocess` and `scoring` to `wonlin91`, so that an author editing `preprocess.py` triggers that owner.
+- The facilitator (李秉倫, team) opened the author PR, demo [PR #10](https://github.com/LiLOUIS0803/changesignal-demo/pull/10), from `LiLOUIS0803`. Its description was one line: "Small regions make similarity scores unstable."
+- P2 used the facilitator's logged-in computer and played the owner of `preprocess` and `scoring`. P2 was not told about the seeded break.
+- GitHub does not let the PR's author account review its own PR, so P2 wrote the decision as a PR comment.
+
+**Timeline (GitHub, UTC+8):**
+
+| Time | Event |
+|---|---|
+| 04:07:06 | PR opened |
+| 04:07:33 | Card posted (27 s) |
+| 04:14:14 | P2's decision comment (6 min 41 s after the card) |
+
+**The card:**
+- It listed `preprocess` (rule) and `scoring` (possible caller).
+- It named `zip(boxes, scores)` at `pipeline/scoring.py:18` and the all-filtered `ValueError`.
+- It asked three questions, including whether `crop_regions` should stay as long as `boxes`.
+
+**Decision (GitHub comment, the record of reference):** request changes.
+- With 5 candidates and only 3 scores, `select_best` paired scores with the original boxes, so cup's score went to book.
+- If every box is skipped, `max()` raises `ValueError`.
+- P2 asked to share one filtered list across cropping, scoring and selection, and to add two tests: the sample selects cup, and all-too-small boxes report "no eligible candidate".
+
+**Facilitator's notes (close to verbatim, written by 李秉倫; GitHub is the reference where they differ):**
+- While reviewing: 「等一下，第一個框如果被跳過，第一個分數現在是算給誰的？」
+- Card usefulness 4/5: 「它指出 zip(boxes, scores)，我知道要去哪裡查。要是再給一個兩個框只剩一個分數的小例子，我會更快看懂。」
+- Willingness: 「願意在實驗室共用的影像流程試用，尤其是改動會影響別人模組的時候。如果常常提醒無關的檔案，我就會少看。」
+
+**Not recorded:**
+- Whether P2 ran `run.py`. The comment's "cup → book" is not on the card, so P2 either ran it or worked it out.
+- Interview questions 1, 2, 4 and 6, and the reaction at the reveal.
+
+**Limits:**
+- One participant.
+- A team member's account, and a comment instead of a formal review.
+- The facilitator was also the author.
+- The notes are not a recording.
+- No baseline.
+- The card pointed straight at the faulty line, so this shows that an owner can act on the card, not that they would find the break without it.
 
 ## 4. Design changes made because of findings
 
@@ -180,6 +221,8 @@ Only sessions with people outside the team count as user tests. Internal runs ar
 | 4 | Checkboxes unticked although tests were reported (Session 1, A4) | Guideline R1 | #31 | Done (merged 2026-11-26) |
 | 5 | When the author also owns the downstream module (`scoring`), the card leaves it off, so the reviewer from another module is not pointed to `zip(boxes, scores)` or the all-filtered `ValueError` (internal trial, §3.2; compare demo PR #1) | None yet. Owners of their own modules are skipped by design (the author cannot sign off for themself); whether the card should still mention the author's own downstream code is open | — | Open, from internal trial |
 | 6 | Demo repository did not require `changesignal/owner-ack`, so `pending` did not block the merge (internal trial, §3.2) | Required the check on the demo repository's `main` (verified via the branch-protection API, 2026-11-29); README step 9 already covers installers | — | Done (2026-11-29); demo PRs #6/#7 were blocked while pending |
+| 7 | P2 understood the break faster with a concrete case: 「要是再給一個兩個框只剩一個分數的小例子，我會更快看懂」 (Session 2) | Candidate: ask the card to add a minimal worked example of the failure when the diff allows it; add a prompt-suite case | — | Open, from Session 2 |
+| 8 | P2 would read the card less if it often flagged unrelated files (Session 2) | No change yet. This supports keeping possible callers as suggestions (D5) and every file owned (#35); noise over many PRs is untested | — | Open, from Session 2 |
 
 **Already tracked, not from user tests:**
 - Unowned files asked nobody to review: resolved by PR #35 (every tracked file has an owner, enforced by a test).
