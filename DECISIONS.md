@@ -251,3 +251,17 @@
 **Known limits:** A PR that edits `DECISIONS.md` or `README.md` now blocks on one person's sign-off, so every decision entry waits for 李秉倫; if that slows the team, revisit with the shared-marker option. The new test also fails when someone adds a file in a new folder before the map covers it, which is intended: add the path to the map in the same PR. Overlapping paths are still not detected.
 
 **Led by:** wonlin91 (detect module; drafted with Claude Code).
+
+## 2026-11-28 — Code steward handoff: LiLOUIS0803 → yixiang0706
+
+**What:** yixiang0706 is the current code steward from this date, taking over from [LiLOUIS0803](https://github.com/LiLOUIS0803) (steward since #27). Handoff note from LiLOUIS0803: as steward I approved #32 (offline reason shown as unverified, issue #29) and #35 (every file has an owner), each with a comment on what I ran or checked, and merged #26, #31, #32 and #35.
+
+**Why:** This is a second turn, outside the rotation entry above. yixiang0706 approved no PR during the first turn (2026-11-24, #24 to #27), and CP2 asks every member for at least two approvals as steward. Two of my PRs are open and waiting for a reviewer, so the turn goes back to yixiang0706 rather than ending with me.
+
+**Open items for the new steward:**
+- Review #33 (status text names the downstream owners who were asked, issue #30) and #34 (README setup with both workflows and the key environment, issue #28). Both are up to date with `main` and their `changesignal/owner-ack` is green; each approval needs at least one behaviour you checked (AI usage guideline R6).
+- Since #35, a new file that no module owns fails `test_every_tracked_file_has_an_owner`. The PR that adds `CLAUDE.md` must also add it to `.changesignal/modules.yml` (owned by wonlin91, so that PR also needs wonlin91's approval).
+- #35's description still has the placeholder in "What I changed afterwards" and an unticked "I read every line" (guideline R1); wonlin91 still needs to fill it in.
+- The merge-day fresh-clone test (clone, follow only the README, run the main task) is still not recorded; #34's step 8 is the acceptance check to follow.
+
+**Led by:** [LiLOUIS0803](https://github.com/LiLOUIS0803) (handoff), yixiang0706 (steward).
