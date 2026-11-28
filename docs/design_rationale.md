@@ -158,6 +158,12 @@ Only sessions with people outside the team count as user tests. Internal runs ar
 - No owner decision and no human data.
 - This trial is not a user test and is not counted as one.
 
+**Follow-up internal check (demo PRs #6 and #7, 2026-11-29):** run by the team from the same account, again with no owner review and no human data (`user-testing/20261129-changesignal-participant-record.md`).
+- After `changesignal/owner-ack` was required, the trial log records both PRs as `blocked` while waiting for the owner.
+- #6 repeated the broken fix: the card gave the same warning; locally `book` was selected; with all boxes filtered out, `ValueError` was raised.
+- #7 moved the filter to the candidate stage: locally `cup` was selected again. The card then raised a different, relevant risk: the 32-pixel threshold can silently drop a real small target.
+- This is not a user test and is not counted as one.
+
 ### 3.3 Session 2 — scheduled, not yet run
 
 > **Placeholder.** Not completed as of 2026-11-29.
@@ -173,7 +179,7 @@ Only sessions with people outside the team count as user tests. Internal runs ar
 | 3 | Green status says "no other module affected" when a caller's owner was asked (Session 1, #3) | Status names the owners who were asked; tests for both texts | #30 → #33 | Done (merged 2026-11-28) |
 | 4 | Checkboxes unticked although tests were reported (Session 1, A4) | Guideline R1 | #31 | Done (merged 2026-11-26) |
 | 5 | When the author also owns the downstream module (`scoring`), the card leaves it off, so the reviewer from another module is not pointed to `zip(boxes, scores)` or the all-filtered `ValueError` (internal trial, §3.2; compare demo PR #1) | None yet. Owners of their own modules are skipped by design (the author cannot sign off for themself); whether the card should still mention the author's own downstream code is open | — | Open, from internal trial |
-| 6 | Demo repository did not require `changesignal/owner-ack`, so `pending` did not block the merge (internal trial, §3.2) | Required the check on the demo repository's `main` (verified via the branch-protection API, 2026-11-29); README step 9 already covers installers | — | Done (2026-11-29) |
+| 6 | Demo repository did not require `changesignal/owner-ack`, so `pending` did not block the merge (internal trial, §3.2) | Required the check on the demo repository's `main` (verified via the branch-protection API, 2026-11-29); README step 9 already covers installers | — | Done (2026-11-29); demo PRs #6/#7 were blocked while pending |
 
 **Already tracked, not from user tests:**
 - Unowned files asked nobody to review: resolved by PR #35 (every tracked file has an owner, enforced by a test).
