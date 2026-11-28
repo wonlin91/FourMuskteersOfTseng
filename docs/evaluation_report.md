@@ -20,6 +20,7 @@ We report only what we observed. Internal checks by team members are labelled **
 | E2 | Week 12 cross-team review | Group 21 (4 people outside the team) | 2026-11-23/24 | **Yes, Session 1** (self-run by the reviewers, not observed by us) | Group 21's Week 12 lab; our issues #28–#30 |
 | E3 | Prompt test suite, 13 cases, live model | yixiang0706, FatFang | 2026-11-24 | No (automated) | `evals/results/20261124-*.md`; PR #26 |
 | E4 | Internal controlled trial: reason vs. empty description | team role-play, one account | 2026-11-29 | No | demo PRs #4, #5; `user-testing/20261129-changesignal-roleplay.md` |
+| E6 | Internal follow-up after requiring `owner-ack`: the broken fix vs. a corrected fix | team, one account (`LiLOUIS0803`) | 2026-11-29 | No (the operator knew the seeded break) | demo PRs #6, #7; `user-testing/20261129-changesignal-participant-record.md` |
 | E5 | Merge-day fresh clone of `main` | run by Claude Code for 李秉倫 | 2026-11-29 | No | `docs/merge_day.md` |
 
 ### E1 — Internal rehearsal (demo PR #1)
@@ -74,7 +75,24 @@ This is the required fail → fix → rerun cycle. It is one run per prompt vers
 - **Risk warning:** both cards warned that crops could be paired with the wrong boxes.
 - **Downstream code missing:** neither card named `scoring.py`. The author account owns `scoring`, and ChangeSignal leaves the author's own modules off the card, so this comes from the role setup. In E1 the author did not own `scoring`, and the card named it.
 - **Seeded break reproduced:** run locally, the change selected `book` instead of `cup`, and the 3 existing tests still passed.
-- **Merge not blocked:** GitHub did not block either PR, because the demo repository did not require `changesignal/owner-ack`. We added that requirement after the trial (verified 2026-11-29).
+- **Merge not blocked:** GitHub did not block either PR, because the demo repository did not require `changesignal/owner-ack`. We added that requirement after the trial (verified 2026-11-29); in E6 both PRs were blocked.
+
+### E6 — Internal follow-up after requiring `owner-ack` (2026-11-29)
+**Setup:**
+- Two PRs, opened one after the other from `LiLOUIS0803`. Both also edited `pipeline/candidates.py` so that `wonlin91` was requested.
+- No owner review was submitted. Each PR was closed about 1 minute after it was opened.
+
+**PR #6 — the broken fix:**
+- It is the same `crop_regions` change as E4.
+- The card warned that the shortened crop list could pair scores with the wrong boxes. It did not name `scoring.py`, for the same role-setup reason as E4.
+- Run locally, it selected `book` instead of `cup`, and the 3 tests still passed.
+- With all boxes filtered out, it raised `ValueError`.
+
+**PR #7 — the corrected fix:** it moves the filter to the candidate stage, so boxes and scores stay aligned.
+- Run locally, it selected `cup` again. With all boxes filtered out, it reported that no candidate was left, instead of crashing.
+- The card raised a different risk: the 32-pixel threshold may silently drop a real small target.
+
+**Gate:** with `changesignal/owner-ack` now required, the trial log records GitHub showing both PRs as `blocked` while waiting for the owner. The required check itself was verified through the branch-protection API.
 
 ### E5 — Merge day
 - Fresh clone of `main` at `24d22e4`, following only README "Develop": 213 tests passed (Python 3.14.4).
@@ -88,8 +106,10 @@ This is the required fail → fix → rerun cycle. It is one run per prompt vers
 | #1 (E1) | 33 s | 8 m 38 s (changes requested) | 12 m 13 s | pending → success |
 | #4 (E4) | 42 s | — | — | pending |
 | #5 (E4) | 34 s | — | — | pending |
+| #6 (E6) | 34 s | — | — | pending |
+| #7 (E6) | 36 s | — | — | pending |
 
-Median time from PR opened to card: 34 s (n = 3). These include the Actions runner start-up; LLM time alone is not recorded.
+Median time from PR opened to card: 34 s (n = 5). These include the Actions runner start-up; LLM time alone is not recorded.
 
 ## 3. Metrics against CP1 thresholds
 
@@ -98,8 +118,8 @@ Median time from PR opened to card: 34 s (n = 3). These include the Actions runn
 | Owner awareness before merge | Owners review ≥ 90% of cross-module changes before merge | E1: 1/1, but the owner was a team member who knew the break | Not tested with users |
 | Escaped breaks | Seeded break caught before merge in ≥ 5 of 6 pairs, clearly more than baseline | E1: not merged, changes requested. E4: no owner decision. Tests stayed green in both, so tests alone would not catch it. No baseline. | Not tested with users |
 | Time to diagnose | Minutes from failing integration to finding the change | Not measured | Not tested |
-| Card quality | ≥ 70% of cards rated 4–5; < 1 in 5 cards lists a wrong module | No ratings. Wrong modules: 0 of 3 demo cards listed a module that was not touched. Prompt suite: 13/13 after one fix (E3). | Not tested with users |
-| Overhead per PR | Median < 5 min per PR | Machine time only: median 34 s to card (n = 3). Human minutes not measured. | Not tested with users |
+| Card quality | ≥ 70% of cards rated 4–5; < 1 in 5 cards lists a wrong module | No ratings. Wrong modules: 0 of 5 demo cards listed a module that was not touched. In E6 the card for the corrected fix raised a different, relevant risk (small targets dropped). Prompt suite: 13/13 after one fix (E3). | Not tested with users |
+| Overhead per PR | Median < 5 min per PR | Machine time only: median 34 s to card (n = 5). Human minutes not measured. | Not tested with users |
 | Author wrote a reason | (CP1 interview metric) | E4: the card told the two cases apart (reason / no reason). E2 showed that, without the AI, unrelated text passed as a reason; fixed in #32. | Internal only |
 
 ## 4. What we have not tested yet
