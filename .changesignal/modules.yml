@@ -23,6 +23,7 @@ modules:
       - "DECISIONS.md"
       - "AI_USAGE_GUIDELINES.md"
       - "CONTRIBUTORS.md"
+      - "CLAUDE.md"
       - "docs/"
     interfaces: ["reconcile", "upsert_comment", "request_reviewers", "set_status"]
 
